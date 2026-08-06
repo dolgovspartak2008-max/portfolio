@@ -1,0 +1,60 @@
+const assert = require('node:assert/strict');
+const {
+  buildTelegramUrl,
+  calculateEstimate,
+  formatPrice,
+  normalizeProjects,
+} = require('../app.js');
+
+const pricing = {
+  base: { title: 'Базовая разработка лендинга', price: 3000 },
+  extras: [
+    { key: 'domain', title: 'Подключение домена', price: 500, isFrom: false },
+    { key: 'hosting', title: 'Подключение хостинга', price: 500, isFrom: false },
+    { key: 'animations', title: 'Создание анимаций', price: 1000, isFrom: true },
+    { key: 'seo', title: 'Базовая SEO-проработка', price: 1000, isFrom: false },
+  ],
+};
+
+assert.equal(formatPrice(3000), '3 000 ₽');
+
+assert.deepEqual(calculateEstimate(pricing, []), {
+  total: 3000,
+  isFrom: false,
+  selected: [],
+});
+
+assert.deepEqual(calculateEstimate(pricing, ['domain', 'animations']), {
+  total: 4500,
+  isFrom: true,
+  selected: [pricing.extras[0], pricing.extras[2]],
+});
+
+const url = buildTelegramUrl('spartlak', pricing, ['animations']);
+assert.ok(url.startsWith('https://t.me/spartlak?text='));
+const message = decodeURIComponent(url.split('?text=')[1]);
+assert.match(message, /Базовая разработка лендинга — 3 000 ₽/);
+assert.match(message, /Создание анимаций — от 1 000 ₽/);
+assert.match(message, /Предварительная стоимость: от 4 000 ₽/);
+
+assert.deepEqual(normalizeProjects([
+  {
+    id: 7,
+    title: 'Мастерская',
+    category: 'Лендинг',
+    live_url: 'https://example.com',
+    image_url: 'https://example.com/cover.jpg',
+    sort_order: 10,
+    published: false,
+  },
+]), [{
+  id: 7,
+  title: 'Мастерская',
+  category: 'Лендинг',
+  liveUrl: 'https://example.com',
+  imageUrl: 'https://example.com/cover.jpg',
+  sortOrder: 10,
+  published: false,
+}]);
+
+console.log('app tests: 6 passed');

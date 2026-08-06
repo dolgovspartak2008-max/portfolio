@@ -1,0 +1,74 @@
+{
+  "owner": {
+    "name": "Спартак",
+    "role": "Разработка лендингов для малого бизнеса",
+    "telegramUsername": "spartlak",
+    "telegramChannelUrl": "https://t.me/spartakchokaet"
+  },
+  "hero": {
+    "eyebrow": "Привет, я",
+    "titleBeforeAccent": "Создаю лендинги, которые помогают малому бизнесу",
+    "titleAccent": "получать клиентов",
+    "description": "Разрабатываю быстрые адаптивные сайты с понятной структурой, современным дизайном и запуском под ключ."
+  },
+  "stack": [
+    { "name": "Next.js", "code": "N" },
+    { "name": "React", "code": "R" },
+    { "name": "JavaScript", "code": "JS" },
+    { "name": "TypeScript", "code": "TS" },
+    { "name": "Tailwind CSS", "code": "TW" },
+    { "name": "shadcn/ui", "code": "UI" },
+    { "name": "Supabase", "code": "SB" },
+    { "name": "Git", "code": "G" },
+    { "name": "GitHub", "code": "GH" },
+    { "name": "Vercel", "code": "V" }
+  ],
+  "projects": [],
+  "pricing": {
+    "base": {
+      "key": "base",
+      "title": "Базовая разработка лендинга",
+      "price": 3000,
+      "included": [
+        "До 6 смысловых секций",
+        "Адаптация под телефон, планшет и desktop",
+        "Структура под задачи малого бизнеса",
+        "Современный дизайн и заметные CTA",
+        "Подключение Telegram для связи",
+        "Базовая оптимизация скорости и metadata",
+        "Одна итерация небольших правок",
+        "Публикация после согласования"
+      ]
+    },
+    "extras": [
+      {
+        "key": "domain",
+        "title": "Подключение домена",
+        "description": "Регистрация и подключение согласованного домена включены.",
+        "price": 500,
+        "isFrom": false
+      },
+      {
+        "key": "hosting",
+        "title": "Подключение хостинга",
+        "description": "Настройка и базовый подходящий тариф включены.",
+        "price": 500,
+        "isFrom": false
+      },
+      {
+        "key": "animations",
+        "title": "Создание анимаций",
+        "description": "Сценарии появления, движения и интерактивные акценты под дизайн.",
+        "price": 1000,
+        "isFrom": true
+      },
+      {
+        "key": "seo",
+        "title": "Базовая SEO-проработка",
+        "description": "Структура заголовков, метаданные и подготовка страницы к индексации.",
+        "price": 1000,
+        "isFrom": false
+      }
+    ]
+  }
+}

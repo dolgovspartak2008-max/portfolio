@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#030712" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="Спартак создаёт быстрые адаптивные лендинги для малого бизнеса — от структуры и дизайна до запуска." />
+    <meta property="og:title" content="Спартак — лендинги для малого бизнеса" />
+    <meta property="og:description" content="Быстрые адаптивные сайты с понятной структурой и запуском под ключ." />
+    <meta property="og:type" content="website" />
+    <title>Спартак — разработка лендингов</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="vendor/gsap.min.js" defer></script>
+    <script src="vendor/ScrollTrigger.min.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">К основному содержимому</a>
+
+    <div class="intro" id="intro" aria-hidden="true">
+      <div class="intro__panel intro__panel--left"></div>
+      <div class="intro__panel intro__panel--right"></div>
+      <div class="intro__flash"></div>
+      <div class="intro__line"></div>
+      <div class="intro__word" aria-label="Portfolio">
+        P<span class="intro__mark"><span></span></span>rtfolio
+      </div>
+    </div>
+
+    <header class="site-header" id="site-header">
+      <a class="brand" href="#home" aria-label="Спартак — на главную">
+        <span class="brand__icon" aria-hidden="true">&lt;/&gt;</span>
+        <span class="brand__text">
+          <strong>Спартак</strong>
+          <small>лендинги для бизнеса</small>
+        </span>
+      </a>
+
+      <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Открыть меню">
+        <span></span><span></span>
+      </button>
+
+      <nav class="site-nav" id="site-nav" aria-label="Основная навигация">
+        <a href="#home" class="is-active">Главная</a>
+        <a href="#stack">Стек</a>
+        <a href="#works">Работы</a>
+        <a href="#pricing">Стоимость</a>
+        <a href="#contacts">Контакты</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="home" aria-labelledby="hero-title">
+        <div class="hero__grid">
+          <div class="hero__copy">
+            <p class="eyebrow">
+              <span class="eyebrow__line" aria-hidden="true"></span>
+              Привет, я
+              <span class="name-shell">
+                <span class="name-decode" id="name-decode" aria-hidden="true">СПАРТАК</span>
+                <span class="sr-only">Спартак</span>
+              </span>
+            </p>
+            <h1 id="hero-title">Создаю лендинги, которые помогают малому бизнесу <span>получать клиентов</span></h1>
+            <p class="hero__lead">Разрабатываю быстрые адаптивные сайты с понятной структурой, современным дизайном и запуском под ключ.</p>
+            <div class="hero__actions">
+              <a class="button button--primary" href="#pricing">Рассчитать стоимость</a>
+              <a class="button button--secondary" href="#works">Посмотреть работы</a>
+            </div>
+            <ul class="hero__meta" aria-label="Ключевые преимущества">
+              <li>Одностраничный формат</li>
+              <li>Адаптивный дизайн</li>
+              <li>Запуск под ключ</li>
+            </ul>
+          </div>
+
+          <div class="hero__visual" aria-label="Портрет Спартака">
+            <div class="portrait-frame">
+              <img src="photo_2026-08-06_15-30-45.jpg" alt="Спартак, разработчик лендингов" width="1280" height="720" />
+              <div class="portrait-frame__scan" aria-hidden="true"></div>
+              <div class="portrait-frame__tag" aria-hidden="true"><span></span> AVAILABLE FOR PROJECTS</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="post-hero" id="post-hero">
+        <div class="flow-layer" aria-hidden="true"><canvas id="flow-canvas"></canvas></div>
+
+        <section class="section stack-section" id="stack" aria-labelledby="stack-title">
+          <div class="section-heading">
+            <p class="section-kicker">01 / Инструменты</p>
+            <h2 id="stack-title">Стек для быстрых и надёжных запусков</h2>
+            <p>Технологии подбираются под задачу, а не ради длинного списка.</p>
+          </div>
+          <div class="stack-grid" id="stack-list" aria-live="polite"></div>
+        </section>
+
+        <section class="section works-section" id="works" aria-labelledby="works-title">
+          <div class="section-heading section-heading--split">
+            <div>
+              <p class="section-kicker">02 / Работы</p>
+              <h2 id="works-title">Портфолио</h2>
+            </div>
+            <p>Здесь будут опубликованы реальные проекты — без шаблонных кейсов и выдуманных результатов.</p>
+          </div>
+          <div id="projects-root"></div>
+        </section>
+
+        <section class="section pricing-section" id="pricing" aria-labelledby="pricing-title">
+          <div class="section-heading">
+            <p class="section-kicker">03 / Стоимость</p>
+            <h2 id="pricing-title">Соберите свой вариант лендинга</h2>
+            <p>Базовая стоимость понятна сразу. Дополнения можно включить по необходимости.</p>
+          </div>
+
+          <div class="pricing-layout">
+            <article class="base-package">
+              <div class="base-package__top">
+                <span class="status-dot"><span></span> Базовый лендинг</span>
+                <strong id="base-price">3 000 ₽</strong>
+              </div>
+              <h3>Готовая одностраничная страница для бизнеса</h3>
+              <p>Подойдёт, чтобы рассказать об услуге, показать ценность и привести клиента к заявке.</p>
+              <ul class="included-list" id="included-list"></ul>
+              <p class="package-note">Не входит: интернет-магазин, личный кабинет, платёжная система, сложная база данных и большое число страниц.</p>
+            </article>
+
+            <form class="calculator" id="calculator">
+              <div class="calculator__base" aria-label="Базовая услуга выбрана">
+                <span class="fixed-check" aria-hidden="true">✓</span>
+                <div><strong>Базовая разработка</strong><small>Всегда включена</small></div>
+                <b>3 000 ₽</b>
+              </div>
+
+              <details class="extras-disclosure">
+                <summary>
+                  <span>Дополнительные услуги</span>
+                  <span class="summary-icon" aria-hidden="true"></span>
+                </summary>
+                <div class="extras-list" id="services-list"></div>
+              </details>
+
+              <div class="estimate" aria-live="polite">
+                <p>Ваш расчёт</p>
+                <div class="estimate__lines" id="estimate-lines"></div>
+                <div class="estimate__total">
+                  <span>Предварительная стоимость</span>
+                  <strong id="estimate-total">3 000 ₽</strong>
+                </div>
+              </div>
+
+              <a class="button button--primary button--wide" id="telegram-order" href="https://t.me/spartlak" target="_blank" rel="noopener noreferrer">Обсудить заказ в Telegram</a>
+              <p class="calculator__note">Расчёт предварительный. Детали и сроки фиксируются после короткого обсуждения задачи.</p>
+            </form>
+          </div>
+        </section>
+
+        <section class="section final-cta" id="contacts" aria-labelledby="contact-title">
+          <div class="final-cta__glow" aria-hidden="true"></div>
+          <p class="section-kicker">04 / Контакты</p>
+          <h2 id="contact-title">Есть задача? Давайте сделаем из неё понятный сайт.</h2>
+          <p>Напишите в Telegram — обсудим цель, структуру и оптимальный формат запуска.</p>
+          <div class="final-cta__actions">
+            <a class="button button--primary" href="https://t.me/spartlak" target="_blank" rel="noopener noreferrer">Написать @spartlak</a>
+            <a class="text-link" href="https://t.me/spartakchokaet" target="_blank" rel="noopener noreferrer">Telegram-канал <span aria-hidden="true">↗</span></a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <a class="brand brand--footer" href="#home"><span class="brand__icon" aria-hidden="true">&lt;/&gt;</span><strong>Спартак</strong></a>
+      <p>Лендинги для малого бизнеса.</p>
+      <div class="footer__links">
+        <a href="https://t.me/spartlak" target="_blank" rel="noopener noreferrer">@spartlak</a>
+        <a href="https://t.me/spartakchokaet" target="_blank" rel="noopener noreferrer">Канал</a>
+      </div>
+      <small>© <span id="year"></span> Спартак</small>
+    </footer>
+  </body>
+</html>
