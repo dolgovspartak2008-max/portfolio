@@ -23,6 +23,20 @@
     published: project.published,
   }));
 
+  const applyPointerForce = (particle, pointer, radius = 150) => {
+    if (!pointer?.active) return;
+    const dx = particle.x - pointer.x;
+    const dy = particle.y - pointer.y;
+    const distanceSquared = (dx * dx) + (dy * dy);
+    if (!distanceSquared || distanceSquared >= radius * radius) return;
+    const distance = Math.sqrt(distanceSquared);
+    const force = (1 - distance / radius) * .72;
+    const nx = dx / distance;
+    const ny = dy / distance;
+    particle.vx += (nx - ny * .28) * force;
+    particle.vy += (ny + nx * .28) * force;
+  };
+
   const buildTelegramUrl = (username, pricing, selectedKeys) => {
     const cleanUsername = String(username || '').trim().replace(/^@/, '');
     if (!cleanUsername) return '';
@@ -48,7 +62,7 @@
   };
 
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { buildTelegramUrl, calculateEstimate, formatPrice, normalizeProjects };
+    module.exports = { applyPointerForce, buildTelegramUrl, calculateEstimate, formatPrice, normalizeProjects };
   }
 
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -266,6 +280,7 @@
             image.src = parsedImage.href;
             image.alt = '';
             image.loading = 'lazy';
+            image.addEventListener('error', () => image.remove(), { once: true });
             visual.append(image);
           }
         } catch (_) { /* Keep the default card visual. */ }
@@ -273,8 +288,36 @@
       const category = document.createElement('small');
       category.textContent = project.category;
       const title = document.createElement('h3');
-      title.textContent = project.title;
-      card.append(visual, category, title);
+      title.setAttribute('aria-label', project.title);
+      let glyphIndex = 0;
+      String(project.title || '').split(/(\s+)/).forEach((part) => {
+        if (!part.trim()) return;
+        const word = document.createElement('span');
+        word.className = 'project-card__word';
+        word.setAttribute('aria-hidden', 'true');
+        Array.from(part).forEach((character) => {
+          const glyph = document.createElement('span');
+          glyph.className = 'project-card__glyph';
+          glyph.style.setProperty('--glyph-index', String(glyphIndex));
+          glyphIndex += 1;
+          ['base', 'top', 'middle', 'bottom'].forEach((layer) => {
+            const slice = document.createElement('span');
+            slice.className = `project-card__glyph-${layer}`;
+            if (layer === 'base') slice.textContent = character;
+            else {
+              slice.dataset.character = character;
+              slice.setAttribute('aria-hidden', 'true');
+            }
+            glyph.append(slice);
+          });
+          word.append(glyph);
+        });
+        title.append(word);
+      });
+      const info = document.createElement('div');
+      info.className = 'project-card__info';
+      info.append(category, title);
+      card.append(visual, info);
       item.append(card);
       wheel.append(item);
     });
@@ -285,10 +328,34 @@
   }
 
   function setupRadialGallery(stage, wheel) {
-    if (!window.gsap || !window.ScrollTrigger || reducedMotionQuery.matches || (window.innerHeight < 600 && window.innerWidth > window.innerHeight)) return;
-    window.gsap.registerPlugin(window.ScrollTrigger);
     const items = Array.from(wheel.querySelectorAll('.radial-wheel__item'));
     const cards = items.map((item) => item.querySelector('.project-card'));
+    let activeIndex = 0;
+    const activateCard = (index, replay = false) => {
+      activeIndex = index;
+      cards.forEach((card, cardIndex) => {
+        if (cardIndex !== index) card.classList.remove('is-shutter-active');
+      });
+      const activeCard = cards[index];
+      if (!activeCard) return;
+      if (replay && activeCard.classList.contains('is-shutter-active')) {
+        activeCard.classList.remove('is-shutter-active');
+        requestAnimationFrame(() => activeCard.classList.add('is-shutter-active'));
+      } else {
+        activeCard.classList.add('is-shutter-active');
+      }
+    };
+    if (!window.gsap || !window.ScrollTrigger || reducedMotionQuery.matches || (window.innerHeight < 600 && window.innerWidth > window.innerHeight)) {
+      activateCard(0);
+      return;
+    }
+    const revealObserver = new IntersectionObserver(([entry], observer) => {
+      if (!entry.isIntersecting) return;
+      activateCard(activeIndex, true);
+      observer.disconnect();
+    }, { threshold: .2 });
+    revealObserver.observe(stage);
+    window.gsap.registerPlugin(window.ScrollTrigger);
     const step = 360 / items.length;
     const context = window.gsap.context(() => {
       items.forEach((item, index) => {
@@ -305,6 +372,11 @@
           scrub: .65,
           anticipatePin: 1,
           invalidateOnRefresh: true,
+          onEnter: () => activateCard(activeIndex, true),
+          onEnterBack: () => activateCard(activeIndex, true),
+          onUpdate: (self) => {
+            if (self.isActive || self.progress > 0) activateCard(Math.round(self.progress * items.length) % items.length);
+          },
         },
       });
       timeline
@@ -436,6 +508,8 @@
     let frameId = 0;
     let active = false;
     let reduced = reducedMotionQuery.matches;
+    const finePointerQuery = window.matchMedia('(pointer: fine)');
+    const pointer = { x: 0, y: 0, active: false };
 
     const resize = () => {
       width = window.innerWidth;
@@ -472,6 +546,7 @@
           const angle = (Math.cos(particle.x * .0048) + Math.sin(particle.y * .0048)) * Math.PI;
           particle.vx = (particle.vx + Math.cos(angle) * .085) * .955;
           particle.vy = (particle.vy + Math.sin(angle) * .085) * .955;
+          if (finePointerQuery.matches) applyPointerForce(particle, pointer);
           particle.x += particle.vx;
           particle.y += particle.vy;
           particle.age += 1;
@@ -510,8 +585,17 @@
     }, { rootMargin: '150px' }).observe(region);
 
     document.addEventListener('visibilitychange', restart);
+    region.addEventListener('pointermove', (event) => {
+      if (reduced || !finePointerQuery.matches) return;
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+      pointer.active = true;
+    }, { passive: true });
+    region.addEventListener('pointerleave', () => { pointer.active = false; }, { passive: true });
+    finePointerQuery.addEventListener('change', (event) => { if (!event.matches) pointer.active = false; });
     reducedMotionQuery.addEventListener('change', (event) => {
       reduced = event.matches;
+      if (reduced) pointer.active = false;
       resize();
       restart();
     });

@@ -23,10 +23,11 @@ const { chromium } = require('playwright');
         title: `Тестовый проект ${id}`,
         category: 'Лендинг',
         live_url: 'https://example.com',
-        image_url: null,
+        image_url: id === 1 ? 'https://images.test/broken.jpg' : null,
         sort_order: id,
       }))),
     }));
+    await page.route('https://images.test/broken.jpg', (route) => route.fulfill({ status: 200, contentType: 'image/jpeg', body: 'not-an-image' }));
     page.on('console', (message) => {
       if (message.type() === 'error') errors.push(`${viewport.name}: ${message.text()}`);
     });
@@ -43,6 +44,20 @@ const { chromium } = require('playwright');
     await page.locator('#stack-list .stack-item').first().waitFor();
     assert.equal(await page.locator('#stack-list .stack-item').count(), 10);
     assert.equal(await page.locator('.project-card').count(), 3);
+    await page.waitForFunction(() => !document.querySelector('.project-card__visual img'), null, { timeout: 3000 });
+    if (viewport.name !== 'mobile-landscape') {
+      assert.equal(await page.locator('.project-card').first().evaluate((element) => element.classList.contains('is-shutter-active')), false);
+      await page.locator('.radial-stage').scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => document.querySelector('.project-card.is-shutter-active'));
+    }
+    assert.ok(await page.locator('.project-card h3 .project-card__glyph').count() > 0);
+    assert.equal(await page.locator('.project-card h3').first().evaluate((element) => getComputedStyle(element).textAlign), 'center');
+    const cardTextLayout = await page.locator('.project-card').first().evaluate((element) => {
+      const category = element.querySelector('small').getBoundingClientRect();
+      const title = element.querySelector('h3').getBoundingClientRect();
+      return { categoryBottom: category.bottom, titleCenter: title.top + title.height / 2 };
+    });
+    assert.ok(cardTextLayout.categoryBottom < cardTextLayout.titleCenter);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
 
     await page.locator('.extras-disclosure summary').click();
@@ -51,12 +66,36 @@ const { chromium } = require('playwright');
     const orderUrl = await page.locator('#telegram-order').getAttribute('href');
     assert.match(orderUrl, /^https:\/\/t\.me\/spartlak\?text=/);
 
+    const { contactButtonBox, channelLinkBox } = await page.locator('.final-cta__actions').evaluate((element) => ({
+      contactButtonBox: element.querySelector('.shiny-cta').getBoundingClientRect().toJSON(),
+      channelLinkBox: element.querySelector('.text-link').getBoundingClientRect().toJSON(),
+    }));
+    assert.ok(channelLinkBox.y >= contactButtonBox.y + contactButtonBox.height);
+    assert.ok(channelLinkBox.width < contactButtonBox.width);
+    assert.ok(Math.abs(
+      (channelLinkBox.x + channelLinkBox.width / 2) - (contactButtonBox.x + contactButtonBox.width / 2),
+    ) < 2, `${viewport.name}: channel link must be centered below Telegram button`);
+
     const heroBox = await page.locator('.hero').boundingBox();
     const heroCardRadius = await page.locator('.hero__grid').evaluate((element) => getComputedStyle(element).borderTopLeftRadius);
     const portraitBox = await page.locator('.portrait-frame').boundingBox();
     assert.ok(heroBox && heroBox.width <= viewport.width);
     assert.notEqual(heroCardRadius, '0px');
     assert.ok(portraitBox && portraitBox.width <= viewport.width * 1.4);
+    if (viewport.name === 'desktop') {
+      const titleAnimations = await page.locator('.project-card.is-shutter-active h3').evaluate((element) => (
+        element.querySelector('.project-card__glyph').getAnimations({ subtree: true }).map((animation) => animation.animationName)
+      ));
+      assert.ok(titleAnimations.includes('project-shutter-right'));
+      assert.ok(titleAnimations.includes('project-shutter-left'));
+      assert.equal(await page.locator('.project-card').first().evaluate((element) => getComputedStyle(element).backgroundColor), 'rgb(7, 17, 38)');
+      const radialClearance = await page.locator('.radial-viewport').evaluate((element) => {
+        const viewportBox = element.getBoundingClientRect();
+        const cardBox = element.querySelector('.project-card').getBoundingClientRect();
+        return cardBox.top - viewportBox.top;
+      });
+      assert.ok(radialClearance >= 20, `desktop radial card clearance was ${radialClearance}px`);
+    }
     if (viewport.width <= 430) {
       const titleBox = await page.locator('.hero h1').boundingBox();
       const heroGridBox = await page.locator('.hero__grid').boundingBox();
@@ -82,21 +121,19 @@ const { chromium } = require('playwright');
         getComputedStyle(element, '::before').content
       )), 'none');
       assert.ok(await page.locator('.final-cta > p:not(.section-kicker)').evaluate((element) => parseFloat(getComputedStyle(element).fontSize) >= 16));
-      const { contactButtonBox, channelLinkBox } = await page.locator('.final-cta__actions').evaluate((element) => ({
-        contactButtonBox: element.querySelector('.shiny-cta').getBoundingClientRect().toJSON(),
-        channelLinkBox: element.querySelector('.text-link').getBoundingClientRect().toJSON(),
-      }));
-      assert.ok(
-        contactButtonBox && channelLinkBox && channelLinkBox.y > contactButtonBox.y + 40,
-        `${viewport.name}: channel link must sit below Telegram button`,
-      );
-      assert.ok(contactButtonBox && channelLinkBox && Math.abs(channelLinkBox.x - contactButtonBox.x) < 2);
+      assert.ok(channelLinkBox.y > contactButtonBox.y + 40);
     }
     if (viewport.name === 'mobile-landscape') {
       assert.equal(await page.locator('.pin-spacer').count(), 0);
       assert.ok(await page.locator('.works-section').evaluate((element) => element.getBoundingClientRect().height < innerHeight * 3));
     }
     await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(800);
+    await page.evaluate(() => window.ScrollTrigger?.update());
+    if (process.env.CAPTURE_DIR) {
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.locator('.project-card').first().waitFor();
+    }
     const screenshotOptions = process.env.CAPTURE_DIR
       ? { path: path.join(process.env.CAPTURE_DIR, `portfolio-${viewport.name}.png`), fullPage: true }
       : {};

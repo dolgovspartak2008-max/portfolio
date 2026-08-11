@@ -39,7 +39,73 @@ test('parses project commands without conversational state', () => {
   assert.deepEqual(parseCommand('/publish 12'), { action: 'publish', id: 12 });
   assert.deepEqual(parseCommand('/hide 12'), { action: 'hide', id: 12 });
   assert.deepEqual(parseCommand('/delete 12 CONFIRM'), { action: 'delete', id: 12 });
+  assert.deepEqual(parseCommand('/image 12'), { action: 'image', id: 12 });
   assert.deepEqual(parseCommand('/delete 12'), { action: 'help' });
+});
+
+test('stores a Telegram photo in public Supabase storage and updates the project image', async () => {
+  Object.assign(process.env, {
+    TELEGRAM_BOT_TOKEN: 'bot-token',
+    TELEGRAM_ADMIN_ID: '42',
+    TELEGRAM_WEBHOOK_SECRET: 'secret',
+    SUPABASE_URL: 'https://demo.supabase.co',
+    SUPABASE_SECRET_KEY: 'sb_secret_test',
+  });
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    const href = String(url);
+    calls.push({ url: href, options });
+    if (href.includes('/getFile?file_id=large-photo')) {
+      return Response.json({ ok: true, result: { file_path: 'photos/cover.jpg' } });
+    }
+    if (href.includes('/file/botbot-token/photos/cover.jpg')) {
+      return new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': 'application/octet-stream' } });
+    }
+    if (href.endsWith('/storage/v1/bucket/portfolio')) return Response.json({ id: 'portfolio', public: true });
+    if (href.includes('/storage/v1/object/portfolio/projects/3-88-unique-photo.jpg')) {
+      return Response.json({ Key: 'portfolio/projects/3-88-unique-photo.jpg' });
+    }
+    if (href.includes('/rest/v1/projects?id=eq.3')) {
+      return Response.json([{ id: 3, title: 'Работа' }]);
+    }
+    return Response.json({ ok: true });
+  };
+
+  try {
+    const response = await telegramApi.fetch(new Request('https://site.test/api/telegram', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-telegram-bot-api-secret-token': 'secret',
+      },
+      body: JSON.stringify({
+        update_id: 88,
+        message: {
+          chat: { id: 42 },
+          from: { id: 42 },
+          caption: '/image 3',
+          photo: [
+            { file_id: 'small-photo', file_unique_id: 'small-unique', width: 90, height: 90 },
+            { file_id: 'large-photo', file_unique_id: 'unique-photo', width: 1280, height: 720 },
+          ],
+        },
+      }),
+    }));
+    assert.equal(response.status, 200);
+
+    const upload = calls.find((call) => call.url.includes('/storage/v1/object/portfolio/'));
+    assert.equal(upload.options.method, 'POST');
+    assert.equal(upload.options.headers['x-upsert'], 'true');
+    assert.equal(upload.options.headers['Content-Type'], 'image/jpeg');
+    const update = calls.find((call) => call.url.includes('/rest/v1/projects?id=eq.3'));
+    assert.deepEqual(JSON.parse(update.options.body), {
+      image_url: 'https://demo.supabase.co/storage/v1/object/public/portfolio/projects/3-88-unique-photo.jpg',
+    });
+    assert.equal(
+      JSON.parse(calls.at(-1).options.body).text,
+      'Обложка ID 3 обновлена.',
+    );
+  } finally { restore(); }
 });
 
 test('rejects webhook requests with wrong secret', async () => {
@@ -128,6 +194,43 @@ test('supports a current Supabase secret key without sending it as a bearer JWT'
     assert.equal(response.status, 200);
     assert.equal(calls[0].options.headers.apikey, 'sb_secret_test');
     assert.equal(calls[0].options.headers.Authorization, undefined);
+  } finally { restore(); }
+});
+
+test('explains how to fix a missing Supabase projects table', async () => {
+  Object.assign(process.env, {
+    TELEGRAM_BOT_TOKEN: 'bot-token',
+    TELEGRAM_ADMIN_ID: '42',
+    TELEGRAM_WEBHOOK_SECRET: 'secret',
+    SUPABASE_URL: 'https://demo.supabase.co',
+    SUPABASE_SECRET_KEY: 'sb_secret_test',
+  });
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url: String(url), options });
+    if (String(url).includes('/rest/v1/projects')) {
+      return Response.json({
+        code: 'PGRST205',
+        message: "Could not find the table 'public.projects' in the schema cache",
+      }, { status: 404 });
+    }
+    return Response.json({ ok: true });
+  };
+
+  try {
+    const response = await telegramApi.fetch(new Request('https://site.test/api/telegram', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-telegram-bot-api-secret-token': 'secret',
+      },
+      body: JSON.stringify({ message: { chat: { id: 42 }, from: { id: 42 }, text: '/list' } }),
+    }));
+    assert.equal(response.status, 200);
+    assert.equal(
+      JSON.parse(calls[1].options.body).text,
+      'Ошибка: Supabase: таблица projects не найдена. Выполните supabase/schema.sql в Supabase SQL Editor.',
+    );
   } finally { restore(); }
 });
 

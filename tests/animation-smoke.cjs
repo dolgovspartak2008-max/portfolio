@@ -59,9 +59,56 @@ const { chromium } = require('playwright');
   await motionPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
   await motionPage.evaluate(() => sessionStorage.setItem('spartak-intro-v2-seen', '1'));
   await motionPage.reload({ waitUntil: 'networkidle' });
+  await motionPage.locator('.project-card').first().scrollIntoViewIfNeeded();
+  await motionPage.waitForFunction(() => document.querySelector('.project-card.is-shutter-active'));
+  const titleAnimationNames = await motionPage.locator('.project-card.is-shutter-active').evaluate((element) => {
+    element.classList.remove('is-shutter-active');
+    void element.offsetWidth;
+    element.classList.add('is-shutter-active');
+    const animations = element.getAnimations({ subtree: true });
+    animations.forEach((animation) => {
+      animation.pause();
+      animation.currentTime = 260;
+    });
+    return animations.map((animation) => animation.animationName);
+  });
+  assert.ok(titleAnimationNames.includes('project-shutter-right'));
+  assert.ok(titleAnimationNames.includes('project-shutter-left'));
+
+  await reducedPage.locator('.project-card').first().waitFor();
+  assert.ok(await reducedPage.locator('.project-card__glyph-top').first().evaluate((element) => (
+    parseFloat(getComputedStyle(element).animationDuration) <= .001
+  )));
+  if (process.env.CAPTURE_DIR) {
+    await motionPage.locator('.project-card.is-shutter-active').evaluate((element) => {
+      const clone = element.cloneNode(true);
+      clone.classList.add('project-card--verification');
+      Object.assign(clone.style, {
+        position: 'fixed',
+        zIndex: '2147483647',
+        top: '50%',
+        left: '50%',
+        width: '300px',
+        height: '390px',
+        transform: 'translate(-50%, -50%)',
+      });
+      document.body.append(clone);
+    });
+    await motionPage.locator('.project-card--verification').evaluate((element) => {
+      element.getAnimations({ subtree: true }).forEach((animation) => {
+        animation.pause();
+        animation.currentTime = 330;
+      });
+    });
+    await motionPage.locator('.project-card--verification').screenshot({ path: path.join(process.env.CAPTURE_DIR, 'project-title-normal.png') });
+    await motionPage.locator('.project-card--verification').evaluate((element) => element.remove());
+    await reducedPage.locator('.project-card').first().scrollIntoViewIfNeeded();
+    await reducedPage.locator('.project-card').first().screenshot({ path: path.join(process.env.CAPTURE_DIR, 'project-title-reduced.png') });
+  }
   await motionPage.evaluate(() => {
     document.documentElement.style.scrollBehavior = 'auto';
     window.ScrollTrigger?.getAll().forEach((trigger) => trigger.kill());
+    window.gsap?.globalTimeline.clear();
     document.getElementById('intro')?.remove();
     document.getElementById('flow-canvas')?.remove();
     document.getElementById('contacts').scrollIntoView();

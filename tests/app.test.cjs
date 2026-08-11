@@ -1,10 +1,19 @@
 const assert = require('node:assert/strict');
 const {
+  applyPointerForce,
   buildTelegramUrl,
   calculateEstimate,
   formatPrice,
   normalizeProjects,
 } = require('../app.js');
+
+assert.equal(typeof applyPointerForce, 'function');
+const nearbyParticle = { x: 110, y: 100, vx: 0, vy: 0 };
+applyPointerForce(nearbyParticle, { x: 100, y: 100, active: true }, 120);
+assert.ok(nearbyParticle.vx > 0, 'nearby particle must react away from the pointer');
+const distantParticle = { x: 500, y: 500, vx: 1, vy: 1 };
+applyPointerForce(distantParticle, { x: 100, y: 100, active: true }, 120);
+assert.deepEqual(distantParticle, { x: 500, y: 500, vx: 1, vy: 1 });
 
 const pricing = {
   base: { title: 'Базовая разработка лендинга', price: 3000 },
@@ -57,4 +66,4 @@ assert.deepEqual(normalizeProjects([
   published: false,
 }]);
 
-console.log('app tests: 6 passed');
+console.log('app tests passed');
