@@ -27,6 +27,14 @@ const { chromium } = require('playwright');
     : {};
   assert.ok((await page.screenshot(normalOptions)).length > 3000);
 
+  await page.goto('http://127.0.0.1:4173/?t=2.1', { waitUntil: 'networkidle' });
+  await page.waitForFunction(() => window.__ready === true);
+  assert.equal(await page.locator('#intro').evaluate((element) => {
+    const color = getComputedStyle(element).backgroundColor;
+    const box = element.getBoundingClientRect();
+    return color === 'rgb(1, 4, 12)' && box.width >= innerWidth && box.height >= innerHeight;
+  }), true);
+
   const reducedPage = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
   await reducedPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
   await reducedPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
@@ -36,6 +44,40 @@ const { chromium } = require('playwright');
     ? { path: path.join(process.env.CAPTURE_DIR, 'intro-reduced.png') }
     : {};
   assert.ok((await reducedPage.screenshot(reducedOptions)).length > 10000);
+
+  const motionPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await motionPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  await motionPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+  await motionPage.evaluate(() => sessionStorage.setItem('spartak-intro-v2-seen', '1'));
+  await motionPage.reload({ waitUntil: 'networkidle' });
+  await motionPage.evaluate(() => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    window.ScrollTrigger?.getAll().forEach((trigger) => trigger.kill());
+    document.getElementById('intro')?.remove();
+    document.getElementById('flow-canvas')?.remove();
+    document.getElementById('contacts').scrollIntoView();
+  });
+  await motionPage.waitForTimeout(500);
+  if (process.env.CAPTURE_DIR) {
+    await motionPage.locator('.final-cta').screenshot({ path: path.join(process.env.CAPTURE_DIR, 'shiny-normal.png') });
+    await reducedPage.locator('.shiny-cta').scrollIntoViewIfNeeded();
+    await reducedPage.locator('.final-cta').screenshot({ path: path.join(process.env.CAPTURE_DIR, 'shiny-reduced.png') });
+  }
+  await page.close();
+  await reducedPage.close();
+  const client = await motionPage.context().newCDPSession(motionPage);
+  const events = [];
+  client.on('Tracing.dataCollected', ({ value }) => events.push(...value));
+  const traceDone = new Promise((resolve) => client.once('Tracing.tracingComplete', resolve));
+  await client.send('Tracing.start', { categories: 'devtools.timeline', options: 'record-as-much-as-possible' });
+  await motionPage.waitForTimeout(700);
+  await client.send('Tracing.end');
+  await traceDone;
+  const traceStart = Math.min(...events.map((event) => event.ts || Infinity));
+  const renderEvents = events.filter((event) => (
+    (event.name === 'Layout' || event.name === 'Paint') && event.ts - traceStart > 100000
+  ));
+  assert.equal(renderEvents.length, 0, `shiny button caused ${renderEvents.length} layout/paint events`);
 
   await browser.close();
   assert.deepEqual(errors, []);

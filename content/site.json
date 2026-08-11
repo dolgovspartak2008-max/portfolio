@@ -23,7 +23,35 @@
     { "name": "GitHub", "code": "GH" },
     { "name": "Vercel", "code": "V" }
   ],
-  "projects": [],
+  "projects": [
+    {
+      "id": "demo-coffee",
+      "title": "Лендинг кофейни",
+      "category": "Тестовая работа",
+      "liveUrl": "",
+      "imageUrl": "",
+      "sortOrder": 1,
+      "published": true
+    },
+    {
+      "id": "demo-renovation",
+      "title": "Сайт студии ремонта",
+      "category": "Тестовая работа",
+      "liveUrl": "",
+      "imageUrl": "",
+      "sortOrder": 2,
+      "published": true
+    },
+    {
+      "id": "demo-expert",
+      "title": "Промо для эксперта",
+      "category": "Тестовая работа",
+      "liveUrl": "",
+      "imageUrl": "",
+      "sortOrder": 3,
+      "published": true
+    }
+  ],
   "pricing": {
     "base": {
       "key": "base",

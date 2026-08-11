@@ -280,7 +280,7 @@
   }
 
   function setupRadialGallery(stage, wheel) {
-    if (!window.gsap || !window.ScrollTrigger || reducedMotionQuery.matches || window.innerWidth < 768) return;
+    if (!window.gsap || !window.ScrollTrigger || reducedMotionQuery.matches || window.innerWidth <= 980 || window.innerHeight < 600) return;
     window.gsap.registerPlugin(window.ScrollTrigger);
     const items = Array.from(wheel.querySelectorAll('.radial-wheel__item'));
     const cards = items.map((item) => item.querySelector('.project-card'));
@@ -526,7 +526,8 @@
       try {
         const projectsResponse = await fetch('/api/projects', { cache: 'no-store' });
         if (!projectsResponse.ok) throw new Error(`Projects request failed: ${projectsResponse.status}`);
-        projects = await projectsResponse.json();
+        const apiProjects = await projectsResponse.json();
+        if (Array.isArray(apiProjects) && apiProjects.length) projects = apiProjects;
       } catch (_) { /* Local preview and API failures use the JSON fallback. */ }
       state.content = content;
       renderStack(content.stack);

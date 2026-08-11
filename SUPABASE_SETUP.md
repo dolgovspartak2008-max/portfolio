@@ -51,3 +51,36 @@ SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 3. Снимите `published` у тестовой записи: после обновления страницы карточка должна исчезнуть.
 
 Если `/api/projects` отвечает `500`, проверьте обе переменные Vercel. Если отвечает `502`, проверьте URL, ключ, выполнение `schema.sql` и RLS policy.
+
+## Управление работами через Telegram-бота
+
+Добавьте в Vercel ещё четыре переменные:
+
+```text
+TELEGRAM_BOT_TOKEN=токен от BotFather
+TELEGRAM_ADMIN_ID=ваш числовой Telegram ID
+TELEGRAM_WEBHOOK_SECRET=случайная длинная строка
+SUPABASE_SERVICE_ROLE_KEY=service_role ключ Supabase
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` используется только серверным `/api/telegram` и не попадает в браузер. После нового deployment зарегистрируйте webhook в PowerShell:
+
+```powershell
+$body = @{
+  url = "https://ВАШ-ДОМЕН/api/telegram"
+  secret_token = "ВАШ_TELEGRAM_WEBHOOK_SECRET"
+}
+Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/botВАШ_TELEGRAM_BOT_TOKEN/setWebhook" -Body $body
+```
+
+Команды бота:
+
+```text
+/list
+/add Название | Категория | https://сайт | https://обложка | порядок
+/publish ID
+/hide ID
+/delete ID CONFIRM
+```
+
+Новая работа после `/add` создаётся скрытой. Опубликуйте её отдельной командой `/publish ID`.
