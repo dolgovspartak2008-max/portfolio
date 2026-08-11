@@ -74,6 +74,8 @@
       finished = true;
       intro.classList.add('is-done');
       document.body.classList.remove('intro-active');
+      document.documentElement.classList.remove('intro-pending');
+      window.clearTimeout(window.__introFallback);
       try { sessionStorage.setItem('spartak-intro-v2-seen', '1'); } catch (_) { /* Storage can be unavailable. */ }
       runNameDecode(alreadyShown || reducedMotionQuery.matches);
       revealHero(alreadyShown || reducedMotionQuery.matches);
@@ -243,6 +245,9 @@
       const item = document.createElement('li');
       item.className = 'radial-wheel__item';
       item.dataset.index = String(index);
+      const angle = (index * 360) / projects.length;
+      item.style.setProperty('--orbit-angle', `${angle}deg`);
+      item.style.setProperty('--orbit-card-angle', `${-angle}deg`);
       const card = document.createElement(safeUrl ? 'a' : 'article');
       card.className = 'project-card';
       if (safeUrl) {
@@ -280,7 +285,7 @@
   }
 
   function setupRadialGallery(stage, wheel) {
-    if (!window.gsap || !window.ScrollTrigger || reducedMotionQuery.matches || window.innerWidth <= 980 || window.innerHeight < 600) return;
+    if (!window.gsap || !window.ScrollTrigger || reducedMotionQuery.matches || (window.innerHeight < 600 && window.innerWidth > window.innerHeight)) return;
     window.gsap.registerPlugin(window.ScrollTrigger);
     const items = Array.from(wheel.querySelectorAll('.radial-wheel__item'));
     const cards = items.map((item) => item.querySelector('.project-card'));
@@ -295,15 +300,16 @@
         scrollTrigger: {
           trigger: stage,
           pin: true,
-          start: 'center center',
-          end: '+=2500',
-          scrub: 1,
+          start: 'top top',
+          end: () => `+=${Math.max(1500, items.length * Math.min(window.innerHeight * .72, 620))}`,
+          scrub: .65,
+          anticipatePin: 1,
           invalidateOnRefresh: true,
         },
       });
       timeline
-        .to(wheel, { rotation: 360, duration: 1, ease: 'none' }, 0)
-        .to(cards, { rotation: (index) => -(index * step) - 360, duration: 1, ease: 'none' }, 0);
+        .to(items, { rotation: (index) => (index * step) - 360, duration: 1, ease: 'none' }, 0)
+        .to(cards, { rotation: (index) => -(index * step) + 360, duration: 1, ease: 'none' }, 0);
     }, stage);
     state.radialContext = context;
     window.ScrollTrigger.refresh();

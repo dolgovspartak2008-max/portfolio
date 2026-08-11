@@ -35,6 +35,15 @@ const { chromium } = require('playwright');
     return color === 'rgb(1, 4, 12)' && box.width >= innerWidth && box.height >= innerHeight;
   }), true);
 
+  const mobileIntroPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await mobileIntroPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  await mobileIntroPage.goto('http://127.0.0.1:4173/?t=.55', { waitUntil: 'networkidle' });
+  assert.equal(await mobileIntroPage.evaluate(() => {
+    const intro = document.getElementById('intro').getBoundingClientRect();
+    const headerVisibility = getComputedStyle(document.getElementById('site-header')).visibility;
+    return intro.top <= -1 && intro.bottom >= innerHeight + 1 && headerVisibility === 'hidden';
+  }), true);
+
   const reducedPage = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
   await reducedPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
   await reducedPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
@@ -64,6 +73,7 @@ const { chromium } = require('playwright');
     await reducedPage.locator('.final-cta').screenshot({ path: path.join(process.env.CAPTURE_DIR, 'shiny-reduced.png') });
   }
   await page.close();
+  await mobileIntroPage.close();
   await reducedPage.close();
   const client = await motionPage.context().newCDPSession(motionPage);
   const events = [];

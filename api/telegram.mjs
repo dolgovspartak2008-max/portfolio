@@ -47,15 +47,26 @@ const configuration = () => ({
   adminId: process.env.TELEGRAM_ADMIN_ID,
   webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET,
   supabaseUrl: process.env.SUPABASE_URL?.replace(/\/$/, ''),
-  serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  serviceKey: process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
+});
+
+const configurationStatus = (config) => ({
+  token: Boolean(config.token),
+  adminId: Boolean(config.adminId),
+  webhookSecret: Boolean(config.webhookSecret),
+  supabaseUrl: Boolean(config.supabaseUrl),
+  serviceKey: Boolean(config.serviceKey),
 });
 
 const supabaseRequest = async (config, path, init = {}) => {
+  const authorization = config.serviceKey.startsWith('sb_secret_')
+    ? {}
+    : { Authorization: `Bearer ${config.serviceKey}` };
   const response = await fetch(`${config.supabaseUrl}/rest/v1/${path}`, {
     ...init,
     headers: {
       apikey: config.serviceKey,
-      Authorization: `Bearer ${config.serviceKey}`,
+      ...authorization,
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
       ...init.headers,
@@ -100,16 +111,24 @@ const execute = async (config, command) => {
   return helpText;
 };
 
-const reply = (config, chatId, text) => fetch(`https://api.telegram.org/bot${config.token}/sendMessage`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ chat_id: chatId, text }),
-});
+const reply = async (config, chatId, text) => {
+  const response = await fetch(`https://api.telegram.org/bot${config.token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text }),
+  });
+  if (!response.ok) throw new Error(`Telegram: ${response.status}`);
+};
 
 export default {
   async fetch(request) {
-    if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
     const config = configuration();
+    if (request.method === 'GET') {
+      const configured = configurationStatus(config);
+      const ok = Object.values(configured).every(Boolean);
+      return json({ ok, configured }, ok ? 200 : 503);
+    }
+    if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
     if (!config.webhookSecret || request.headers.get('x-telegram-bot-api-secret-token') !== config.webhookSecret) {
       return json({ error: 'Unauthorized' }, 401);
     }
@@ -125,7 +144,11 @@ export default {
     try {
       await reply(config, message.chat.id, await execute(config, parseCommand(message.text)));
     } catch (error) {
-      await reply(config, message.chat.id, `Ошибка: ${error.message}`);
+      try {
+        await reply(config, message.chat.id, `Ошибка: ${error.message}`);
+      } catch (replyError) {
+        return json({ error: replyError.message }, 502);
+      }
     }
     return json({ ok: true });
   },

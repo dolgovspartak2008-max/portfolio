@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" class="intro-pending">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -10,6 +10,12 @@
     <meta property="og:description" content="Быстрые адаптивные сайты с понятной структурой и запуском под ключ." />
     <meta property="og:type" content="website" />
     <title>Спартак — разработка лендингов</title>
+    <style id="intro-critical">
+      html.intro-pending, html.intro-pending body { margin: 0; overflow: hidden; background: #01040c; }
+      html.intro-pending body > :not(.intro) { visibility: hidden; }
+      html.intro-pending .intro { position: fixed; z-index: 2147483647; inset: -2px; min-height: calc(100dvh + 4px); background: #01040c; }
+    </style>
+    <script>window.__introFallback = window.setTimeout(function () { document.documentElement.classList.remove('intro-pending'); }, 4000);</script>
     <link rel="stylesheet" href="styles.css" />
     <script src="vendor/gsap.min.js" defer></script>
     <script src="vendor/ScrollTrigger.min.js" defer></script>

@@ -18,14 +18,14 @@ const { chromium } = require('playwright');
     await page.route('**/api/projects', (route) => route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify([{
-        id: 1,
-        title: 'Тестовый проект',
+      body: JSON.stringify([1, 2, 3].map((id) => ({
+        id,
+        title: `Тестовый проект ${id}`,
         category: 'Лендинг',
         live_url: 'https://example.com',
         image_url: null,
-        sort_order: 0,
-      }]),
+        sort_order: id,
+      }))),
     }));
     page.on('console', (message) => {
       if (message.type() === 'error') errors.push(`${viewport.name}: ${message.text()}`);
@@ -42,7 +42,7 @@ const { chromium } = require('playwright');
 
     await page.locator('#stack-list .stack-item').first().waitFor();
     assert.equal(await page.locator('#stack-list .stack-item').count(), 10);
-    assert.equal(await page.locator('.project-card', { hasText: 'Тестовый проект' }).count(), 1);
+    assert.equal(await page.locator('.project-card').count(), 3);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
 
     await page.locator('.extras-disclosure summary').click();
@@ -59,21 +59,38 @@ const { chromium } = require('playwright');
     assert.ok(portraitBox && portraitBox.width <= viewport.width * 1.4);
     if (viewport.width <= 430) {
       const titleBox = await page.locator('.hero h1').boundingBox();
-      assert.ok(titleBox && portraitBox && portraitBox.x > titleBox.x);
+      const heroGridBox = await page.locator('.hero__grid').boundingBox();
+      assert.ok(heroGridBox && portraitBox && portraitBox.width >= heroGridBox.width * .95);
       assert.ok(titleBox && portraitBox && portraitBox.y < titleBox.y + titleBox.height);
       assert.ok(await page.locator('.hero__details').evaluate((element) => {
         const fade = getComputedStyle(element, '::before');
-        return fade.content !== 'none' && parseFloat(fade.height) >= 48;
+        return fade.content !== 'none' && parseFloat(fade.height) >= 140;
       }));
       assert.ok(await page.locator('.portrait-frame img').evaluate((element) => (
-        parseFloat(getComputedStyle(element).objectPosition) >= 78
+        getComputedStyle(element).transform === 'none'
+        && parseFloat(getComputedStyle(element).objectPosition) >= 60
+        && parseFloat(getComputedStyle(element).objectPosition) <= 75
       )));
+      assert.notEqual(await page.locator('.radial-wheel').evaluate((element) => getComputedStyle(element).position), 'static');
+      assert.equal(await page.locator('.radial-wheel').evaluate((element) => getComputedStyle(element).display), 'block');
+      assert.equal(await page.evaluate(() => (
+        window.ScrollTrigger.getAll().some((trigger) => trigger.pin?.classList.contains('radial-stage'))
+      )), viewport.name !== 'mobile-landscape');
       assert.equal(await page.locator('.final-cta .shiny-cta').textContent(), 'НАПИСАТЬ В ТЕЛЕГРАМ');
       assert.ok(await page.locator('.final-cta .shiny-cta').evaluate((element) => element.getBoundingClientRect().height >= 52));
       assert.equal(await page.locator('.final-cta .shiny-cta span').evaluate((element) => (
         getComputedStyle(element, '::before').content
       )), 'none');
       assert.ok(await page.locator('.final-cta > p:not(.section-kicker)').evaluate((element) => parseFloat(getComputedStyle(element).fontSize) >= 16));
+      const { contactButtonBox, channelLinkBox } = await page.locator('.final-cta__actions').evaluate((element) => ({
+        contactButtonBox: element.querySelector('.shiny-cta').getBoundingClientRect().toJSON(),
+        channelLinkBox: element.querySelector('.text-link').getBoundingClientRect().toJSON(),
+      }));
+      assert.ok(
+        contactButtonBox && channelLinkBox && channelLinkBox.y > contactButtonBox.y + 40,
+        `${viewport.name}: channel link must sit below Telegram button`,
+      );
+      assert.ok(contactButtonBox && channelLinkBox && Math.abs(channelLinkBox.x - contactButtonBox.x) < 2);
     }
     if (viewport.name === 'mobile-landscape') {
       assert.equal(await page.locator('.pin-spacer').count(), 0);

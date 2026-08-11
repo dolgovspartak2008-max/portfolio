@@ -9,6 +9,7 @@ const original = {
   secret: process.env.TELEGRAM_WEBHOOK_SECRET,
   url: process.env.SUPABASE_URL,
   key: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  secretKey: process.env.SUPABASE_SECRET_KEY,
 };
 
 const restore = () => {
@@ -19,6 +20,7 @@ const restore = () => {
     TELEGRAM_WEBHOOK_SECRET: original.secret,
     SUPABASE_URL: original.url,
     SUPABASE_SERVICE_ROLE_KEY: original.key,
+    SUPABASE_SECRET_KEY: original.secretKey,
   })) {
     if (value === undefined) delete process.env[name];
     else process.env[name] = value;
@@ -49,6 +51,83 @@ test('rejects webhook requests with wrong secret', async () => {
       body: '{}',
     }));
     assert.equal(response.status, 401);
+  } finally { restore(); }
+});
+
+test('reports which server variables are configured without exposing values', async () => {
+  Object.assign(process.env, {
+    TELEGRAM_BOT_TOKEN: 'bot-token',
+    TELEGRAM_ADMIN_ID: '42',
+    TELEGRAM_WEBHOOK_SECRET: 'secret',
+    SUPABASE_URL: 'https://demo.supabase.co',
+  });
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  try {
+    const response = await telegramApi.fetch(new Request('https://site.test/api/telegram'));
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), {
+      ok: false,
+      configured: {
+        token: true,
+        adminId: true,
+        webhookSecret: true,
+        supabaseUrl: true,
+        serviceKey: false,
+      },
+    });
+  } finally { restore(); }
+});
+
+test('returns 502 when Telegram rejects the reply instead of hiding the failure', async () => {
+  Object.assign(process.env, {
+    TELEGRAM_BOT_TOKEN: 'bot-token',
+    TELEGRAM_ADMIN_ID: '42',
+    TELEGRAM_WEBHOOK_SECRET: 'secret',
+    SUPABASE_URL: 'https://demo.supabase.co',
+    SUPABASE_SERVICE_ROLE_KEY: 'service-key',
+  });
+  globalThis.fetch = async () => Response.json({ ok: false, description: 'Unauthorized' }, { status: 401 });
+  try {
+    const response = await telegramApi.fetch(new Request('https://site.test/api/telegram', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-telegram-bot-api-secret-token': 'secret',
+      },
+      body: JSON.stringify({ message: { chat: { id: 42 }, from: { id: 42 }, text: '/start' } }),
+    }));
+    assert.equal(response.status, 502);
+    assert.match((await response.json()).error, /Telegram: 401/);
+  } finally { restore(); }
+});
+
+test('supports a current Supabase secret key without sending it as a bearer JWT', async () => {
+  Object.assign(process.env, {
+    TELEGRAM_BOT_TOKEN: 'bot-token',
+    TELEGRAM_ADMIN_ID: '42',
+    TELEGRAM_WEBHOOK_SECRET: 'secret',
+    SUPABASE_URL: 'https://demo.supabase.co',
+    SUPABASE_SECRET_KEY: 'sb_secret_test',
+  });
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url: String(url), options });
+    if (String(url).includes('/rest/v1/projects')) return Response.json([]);
+    return Response.json({ ok: true });
+  };
+  try {
+    const response = await telegramApi.fetch(new Request('https://site.test/api/telegram', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-telegram-bot-api-secret-token': 'secret',
+      },
+      body: JSON.stringify({ message: { chat: { id: 42 }, from: { id: 42 }, text: '/list' } }),
+    }));
+    assert.equal(response.status, 200);
+    assert.equal(calls[0].options.headers.apikey, 'sb_secret_test');
+    assert.equal(calls[0].options.headers.Authorization, undefined);
   } finally { restore(); }
 });
 

@@ -60,10 +60,10 @@ SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 TELEGRAM_BOT_TOKEN=токен от BotFather
 TELEGRAM_ADMIN_ID=ваш числовой Telegram ID
 TELEGRAM_WEBHOOK_SECRET=случайная длинная строка
-SUPABASE_SERVICE_ROLE_KEY=service_role ключ Supabase
+SUPABASE_SECRET_KEY=sb_secret_... ключ Supabase
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` используется только серверным `/api/telegram` и не попадает в браузер. После нового deployment зарегистрируйте webhook в PowerShell:
+`SUPABASE_SECRET_KEY` используется только серверным `/api/telegram` и не попадает в браузер. Старый `SUPABASE_SERVICE_ROLE_KEY` тоже поддерживается. После нового deployment откройте `/api/telegram`: все пять значений `configured` должны быть `true`. Затем зарегистрируйте webhook в PowerShell:
 
 ```powershell
 $body = @{
