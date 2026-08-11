@@ -31,6 +31,36 @@ test('returns published projects from Supabase', async () => {
   }
 });
 
+test('resolves an iimg share page to its direct project image', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalUrl = process.env.SUPABASE_URL;
+  const originalKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+
+  process.env.SUPABASE_URL = 'https://demo.supabase.co';
+  process.env.SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_test';
+  globalThis.fetch = async (url) => {
+    if (String(url).startsWith('https://demo.supabase.co/rest/v1/projects?')) {
+      return Response.json([{ id: 3, title: 'Project', image_url: 'https://iimg.su/i/HzVPha' }]);
+    }
+    assert.equal(url, 'https://iimg.su/i/HzVPha');
+    return new Response('<meta property="og:image" content="https://s6.iimage.su/s/11/cover.jpg">', {
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+    });
+  };
+
+  try {
+    const response = await projectsApi.fetch(new Request('https://site.test/api/projects'));
+    assert.equal(response.status, 200);
+    assert.equal((await response.json())[0].image_url, 'https://s6.iimage.su/s/11/cover.jpg');
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalUrl === undefined) delete process.env.SUPABASE_URL;
+    else process.env.SUPABASE_URL = originalUrl;
+    if (originalKey === undefined) delete process.env.SUPABASE_PUBLISHABLE_KEY;
+    else process.env.SUPABASE_PUBLISHABLE_KEY = originalKey;
+  }
+});
+
 test('rejects methods other than GET', async () => {
   const response = await projectsApi.fetch(new Request('https://site.test/api/projects', { method: 'POST' }));
   assert.equal(response.status, 405);
