@@ -77,14 +77,15 @@ const { chromium } = require('playwright');
     element.classList.remove('is-shutter-active');
     void element.offsetWidth;
     element.classList.add('is-shutter-active');
-    const animations = element.querySelector('h3').getAnimations();
+    const animations = element.querySelector('.project-card__glyph').getAnimations({ subtree: true });
     animations.forEach((animation) => {
       animation.pause();
       animation.currentTime = 260;
     });
     return animations.map((animation) => animation.animationName);
   });
-  assert.ok(titleAnimationNames.includes('project-title-write'));
+  assert.ok(titleAnimationNames.includes('project-shutter-right'));
+  assert.ok(titleAnimationNames.includes('project-shutter-left'));
 
   await reducedPage.locator('.project-card').first().waitFor();
   const reducedGallery = await reducedPage.locator('.radial-wheel').evaluate((wheel) => {
@@ -97,7 +98,7 @@ const { chromium } = require('playwright');
     };
   });
   assert.deepEqual(reducedGallery, { allAccessible: true, noOverlap: true });
-  assert.ok(await reducedPage.locator('.project-card h3').first().evaluate((element) => (
+  assert.ok(await reducedPage.locator('.project-card__glyph-top').first().evaluate((element) => (
     parseFloat(getComputedStyle(element).animationDuration) <= .001
   )));
   if (process.env.CAPTURE_DIR) {

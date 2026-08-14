@@ -324,7 +324,32 @@
       const category = document.createElement('small');
       category.textContent = project.category;
       const title = document.createElement('h3');
-      title.textContent = project.title;
+      title.setAttribute('aria-label', project.title);
+      let glyphIndex = 0;
+      String(project.title || '').split(/(\s+)/).forEach((part) => {
+        if (!part.trim()) return;
+        const word = document.createElement('span');
+        word.className = 'project-card__word';
+        word.setAttribute('aria-hidden', 'true');
+        Array.from(part).forEach((character) => {
+          const glyph = document.createElement('span');
+          glyph.className = 'project-card__glyph';
+          glyph.style.setProperty('--glyph-index', String(glyphIndex));
+          glyphIndex += 1;
+          ['base', 'top', 'middle', 'bottom'].forEach((layer) => {
+            const slice = document.createElement('span');
+            slice.className = `project-card__glyph-${layer}`;
+            if (layer === 'base') slice.textContent = character;
+            else {
+              slice.dataset.character = character;
+              slice.setAttribute('aria-hidden', 'true');
+            }
+            glyph.append(slice);
+          });
+          word.append(glyph);
+        });
+        title.append(word);
+      });
       const info = document.createElement('div');
       info.className = 'project-card__info';
       info.append(category, title);
@@ -396,11 +421,24 @@
       window.gsap.registerPlugin(window.ScrollTrigger);
       const step = 360 / items.length;
       context = window.gsap.context(() => {
+        const updateGallery = (progress) => {
+          items.forEach((item, index) => {
+            const angle = ((((index * step) - (progress * 360)) + 180) % 360 + 360) % 360 - 180;
+            const distance = Math.abs(angle);
+            const opacity = distance <= step * .45
+              ? 1
+              : Math.max(0, 1 - ((distance - step * .45) / (step * .8)));
+            window.gsap.set(item, { opacity });
+          });
+          const index = Math.round(progress * items.length) % items.length;
+          if (index !== activeIndex) activateCard(index);
+        };
         items.forEach((item, index) => {
           const angle = index * step;
           window.gsap.set(item, { rotation: angle });
           window.gsap.set(cards[index], { rotation: -angle });
         });
+        updateGallery(0);
         const timeline = window.gsap.timeline({
           scrollTrigger: {
             trigger: stage,
@@ -412,9 +450,9 @@
             invalidateOnRefresh: true,
             onEnter: () => activateCard(activeIndex, true),
             onEnterBack: () => activateCard(activeIndex, true),
-            onUpdate: (self) => {
-              if (self.isActive || self.progress > 0) activateCard(Math.round(self.progress * items.length) % items.length);
-            },
+          },
+          onUpdate() {
+            updateGallery(this.progress());
           },
         });
         timeline

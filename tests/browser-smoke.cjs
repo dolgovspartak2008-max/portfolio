@@ -63,17 +63,16 @@ const { chromium } = require('playwright');
       }));
       assert.deepEqual(galleryAccessibility, { active: 1, inactive: 4 });
     }
-    assert.equal(await page.locator('.project-card h3 .project-card__glyph').count(), 0);
-    assert.equal(await page.locator('.project-card h3').first().textContent(), 'Pulse');
+    assert.ok(await page.locator('.project-card h3 .project-card__glyph').count() > 0);
+    assert.equal(await page.locator('.project-card h3').first().getAttribute('aria-label'), 'Pulse');
     assert.equal(await page.locator('.project-card h3').first().evaluate((element) => getComputedStyle(element).textAlign), 'center');
     assert.equal(await page.locator('.project-card small').first().evaluate((element) => getComputedStyle(element).textAlign), 'center');
     assert.ok(await page.locator('.project-card h3').first().evaluate((element) => {
       const style = getComputedStyle(element);
-      return style.fontFamily.includes('Marck Script')
+      return !style.fontFamily.includes('Marck Script')
         && style.fontStyle === 'normal'
-        && parseFloat(style.fontSize) >= 30;
+        && parseFloat(style.fontSize) >= 20;
     }));
-    assert.equal(await page.evaluate(() => document.fonts.check('40px "Marck Script"', 'СтейкХаус')), true);
     const cardTextLayout = await page.locator('.project-card').first().evaluate((element) => {
       const card = element.getBoundingClientRect();
       const category = element.querySelector('small').getBoundingClientRect();
@@ -112,9 +111,10 @@ const { chromium } = require('playwright');
     assert.ok(portraitBox && portraitBox.width <= viewport.width * 1.4);
     if (viewport.name === 'desktop') {
       const titleAnimations = await page.locator('.project-card.is-shutter-active h3').evaluate((element) => (
-        element.getAnimations().map((animation) => animation.animationName)
+        element.querySelector('.project-card__glyph').getAnimations({ subtree: true }).map((animation) => animation.animationName)
       ));
-      assert.ok(titleAnimations.includes('project-title-write'));
+      assert.ok(titleAnimations.includes('project-shutter-right'));
+      assert.ok(titleAnimations.includes('project-shutter-left'));
       assert.equal(await page.locator('.project-card').first().evaluate((element) => getComputedStyle(element).backgroundColor), 'rgb(7, 17, 38)');
       const radialClearance = await page.locator('.radial-viewport').evaluate((element) => {
         const viewportBox = element.getBoundingClientRect();
@@ -132,8 +132,8 @@ const { chromium } = require('playwright');
         }).length;
         return { wheelBelow: wheelBox.top >= viewportBox.bottom, fullyVisible };
       });
-      assert.equal(arcLayout.wheelBelow, true);
-      assert.equal(arcLayout.fullyVisible, 1);
+      assert.equal(arcLayout.wheelBelow, false);
+      assert.ok(arcLayout.fullyVisible >= 2 && arcLayout.fullyVisible <= 3);
     }
     if (viewport.name !== 'mobile-landscape') {
       const galleryFocus = await page.locator('.radial-viewport').evaluate((element) => {
@@ -144,13 +144,13 @@ const { chromium } = require('playwright');
           parseFloat(getComputedStyle(item).opacity) > .05
         )).length;
         const transitionDuration = getComputedStyle(element.querySelector('.radial-wheel__item')).transitionDuration;
-        return { width: active.width, height: active.height, visibleItems, transitionDuration, wheelClearance: wheel.top - viewport.bottom };
+        return { width: active.width, height: active.height, visibleItems, transitionDuration, activeTop: active.top - viewport.top };
       });
       assert.ok(galleryFocus.width <= 260, `${viewport.name}: card width was ${galleryFocus.width}px`);
       assert.ok(galleryFocus.height <= 342, `${viewport.name}: card height was ${galleryFocus.height}px`);
-      assert.equal(galleryFocus.visibleItems, 1);
+      assert.ok(galleryFocus.visibleItems >= 2 && galleryFocus.visibleItems <= 3, `${viewport.name}: ${galleryFocus.visibleItems} cards were visible`);
       assert.equal(galleryFocus.transitionDuration, '0s');
-      assert.ok(galleryFocus.wheelClearance >= 15, `${viewport.name}: wheel clearance was ${galleryFocus.wheelClearance}px`);
+      assert.ok(galleryFocus.activeTop >= 40 && galleryFocus.activeTop <= 180, `${viewport.name}: active card top was ${galleryFocus.activeTop}px`);
       if (process.env.CAPTURE_DIR && ['desktop', 'mobile'].includes(viewport.name)) {
         await page.locator('.radial-stage').scrollIntoViewIfNeeded();
         await page.waitForTimeout(750);
@@ -160,6 +160,16 @@ const { chromium } = require('playwright');
       }
     }
     if (['desktop', 'mobile'].includes(viewport.name)) {
+      const slowScrollAlignment = await page.evaluate(async () => {
+        const trigger = window.ScrollTrigger.getAll().find((item) => item.pin?.classList.contains('radial-stage'));
+        window.scrollTo({ top: trigger.start + ((trigger.end - trigger.start) * .2), behavior: 'instant' });
+        window.ScrollTrigger.update();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        const viewport = document.querySelector('.radial-viewport').getBoundingClientRect();
+        const active = document.querySelector('.radial-wheel__item.is-active .project-card').getBoundingClientRect();
+        return Math.abs((active.left + active.width / 2) - (viewport.left + viewport.width / 2));
+      });
+      assert.ok(slowScrollAlignment < 190, `${viewport.name}: active card lagged ${slowScrollAlignment}px behind the wheel`);
       const projectSequence = await page.evaluate(async () => {
         const trigger = window.ScrollTrigger.getAll().find((item) => item.pin?.classList.contains('radial-stage'));
         const expected = ['Pulse', 'BlueSea', 'BRAVO', 'СтейкХаус', 'PRECISION AUTO'];
@@ -176,7 +186,7 @@ const { chromium } = require('playwright');
           const viewportBox = document.querySelector('.radial-viewport').getBoundingClientRect();
           const activeCard = document.querySelector('.radial-wheel__item.is-active .project-card');
           const cardBox = activeCard.getBoundingClientRect();
-          actual.push(activeCard.querySelector('h3').textContent);
+          actual.push(activeCard.querySelector('h3').getAttribute('aria-label'));
           fullyVisible.push(cardBox.top >= viewportBox.top && cardBox.bottom <= viewportBox.bottom
             && cardBox.left >= viewportBox.left && cardBox.right <= viewportBox.right);
           const title = activeCard.querySelector('h3');
