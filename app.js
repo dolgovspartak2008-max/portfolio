@@ -13,15 +13,43 @@
     };
   };
 
-  const normalizeProjects = (projects) => (Array.isArray(projects) ? projects : []).map((project) => ({
-    id: project.id,
-    title: project.title,
-    category: project.category,
-    liveUrl: project.liveUrl ?? project.live_url ?? '',
-    imageUrl: project.imageUrl ?? project.image_url ?? '',
-    sortOrder: project.sortOrder ?? project.sort_order ?? 0,
-    published: project.published,
-  }));
+  const legacyProjectImages = new Map([
+    ['4', './assets/projects/pulse.jpg'],
+    ['5', './assets/projects/blue-sea.jpg'],
+    ['6', './assets/projects/bravo.jpg'],
+    ['7', './assets/projects/steak-house.jpg'],
+    ['8', './assets/projects/precision-auto.jpg'],
+  ]);
+
+  const normalizeProjects = (projects) => (Array.isArray(projects) ? projects : []).map((project) => {
+    const sourceImage = project.imageUrl ?? project.image_url ?? '';
+    const usesLegacyHost = /^(?:https?:)?\/\/[^/]*(?:iimage|iimg)\.su\//i.test(sourceImage);
+    const localImage = !sourceImage || usesLegacyHost
+      ? legacyProjectImages.get(String(project.id))
+      : '';
+    return {
+      id: project.id,
+      title: project.title,
+      category: project.category,
+      liveUrl: project.liveUrl ?? project.live_url ?? '',
+      imageUrl: localImage || sourceImage,
+      sortOrder: project.sortOrder ?? project.sort_order ?? 0,
+      published: project.published,
+    };
+  });
+
+  const buildProjectImageUrl = (imageUrl, origin = '') => {
+    try {
+      const parsed = new URL(imageUrl, origin || undefined);
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return '';
+      if (parsed.hostname === 'iimage.su' || parsed.hostname.endsWith('.iimage.su')) {
+        return `/api/project-image?url=${encodeURIComponent(parsed.href)}`;
+      }
+      return parsed.href;
+    } catch (_) {
+      return '';
+    }
+  };
 
   const applyPointerForce = (particle, pointer, radius = 150) => {
     if (!pointer?.active) return;
@@ -62,13 +90,20 @@
   };
 
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { applyPointerForce, buildTelegramUrl, calculateEstimate, formatPrice, normalizeProjects };
+    module.exports = {
+      applyPointerForce,
+      buildProjectImageUrl,
+      buildTelegramUrl,
+      calculateEstimate,
+      formatPrice,
+      normalizeProjects,
+    };
   }
 
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
   const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const state = { content: null, selected: new Set(), radialContext: null, scrollContext: null };
+  const state = { content: null, selected: new Set(), radialCleanup: null, scrollContext: null };
 
   const setText = (selector, value) => {
     const element = document.querySelector(selector);
@@ -83,9 +118,11 @@
     try { alreadyShown = sessionStorage.getItem('spartak-intro-v2-seen') === '1'; } catch (_) { alreadyShown = false; }
     const gsap = window.gsap;
     let finished = false;
+    let finishTimer = 0;
     const finish = () => {
       if (finished) return;
       finished = true;
+      window.clearTimeout(finishTimer);
       intro.classList.add('is-done');
       document.body.classList.remove('intro-active');
       document.documentElement.classList.remove('intro-pending');
@@ -94,6 +131,7 @@
       runNameDecode(alreadyShown || reducedMotionQuery.matches);
       revealHero(alreadyShown || reducedMotionQuery.matches);
     };
+    finishTimer = window.setTimeout(finish, 3000);
 
     if (gsap) {
       const word = intro.querySelector('.intro__word');
@@ -224,9 +262,9 @@
   function renderProjects(projects) {
     const root = document.getElementById('projects-root');
     if (!root) return;
-    if (state.radialContext) {
-      state.radialContext.revert();
-      state.radialContext = null;
+    if (state.radialCleanup) {
+      state.radialCleanup();
+      state.radialCleanup = null;
     }
 
     if (!projects.length) {
@@ -272,48 +310,21 @@
       const visual = document.createElement('div');
       visual.className = 'project-card__visual';
       visual.setAttribute('aria-hidden', 'true');
-      if (project.imageUrl) {
-        try {
-          const parsedImage = new URL(project.imageUrl);
-          if (parsedImage.protocol === 'https:' || parsedImage.protocol === 'http:') {
-            const image = document.createElement('img');
-            image.src = parsedImage.href;
-            image.alt = '';
-            image.loading = 'lazy';
-            image.addEventListener('error', () => image.remove(), { once: true });
-            visual.append(image);
-          }
-        } catch (_) { /* Keep the default card visual. */ }
+      const imageUrl = buildProjectImageUrl(project.imageUrl, location.origin);
+      if (imageUrl) {
+        const image = document.createElement('img');
+        image.src = imageUrl;
+        image.alt = '';
+        image.loading = 'eager';
+        image.decoding = 'async';
+        image.fetchPriority = index === 0 ? 'high' : 'auto';
+        image.addEventListener('error', () => image.remove(), { once: true });
+        visual.append(image);
       }
       const category = document.createElement('small');
       category.textContent = project.category;
       const title = document.createElement('h3');
-      title.setAttribute('aria-label', project.title);
-      let glyphIndex = 0;
-      String(project.title || '').split(/(\s+)/).forEach((part) => {
-        if (!part.trim()) return;
-        const word = document.createElement('span');
-        word.className = 'project-card__word';
-        word.setAttribute('aria-hidden', 'true');
-        Array.from(part).forEach((character) => {
-          const glyph = document.createElement('span');
-          glyph.className = 'project-card__glyph';
-          glyph.style.setProperty('--glyph-index', String(glyphIndex));
-          glyphIndex += 1;
-          ['base', 'top', 'middle', 'bottom'].forEach((layer) => {
-            const slice = document.createElement('span');
-            slice.className = `project-card__glyph-${layer}`;
-            if (layer === 'base') slice.textContent = character;
-            else {
-              slice.dataset.character = character;
-              slice.setAttribute('aria-hidden', 'true');
-            }
-            glyph.append(slice);
-          });
-          word.append(glyph);
-        });
-        title.append(word);
-      });
+      title.textContent = project.title;
       const info = document.createElement('div');
       info.className = 'project-card__info';
       info.append(category, title);
@@ -331,13 +342,35 @@
     const items = Array.from(wheel.querySelectorAll('.radial-wheel__item'));
     const cards = items.map((item) => item.querySelector('.project-card'));
     let activeIndex = 0;
-    const activateCard = (index, replay = false) => {
+    let mode = '';
+    let context = null;
+    let revealObserver = null;
+    let resizeFrame = 0;
+    let disposed = false;
+    const activateCard = (index, replay = false, exclusive = true, reveal = true) => {
       activeIndex = index;
       cards.forEach((card, cardIndex) => {
+        const item = items[cardIndex];
+        const isActive = cardIndex === index;
+        item?.classList.toggle('is-active', isActive);
+        if (item && exclusive) {
+          item.inert = !isActive;
+          if (isActive) item.removeAttribute('aria-hidden');
+          else item.setAttribute('aria-hidden', 'true');
+          if (card.matches('a')) card.tabIndex = isActive ? 0 : -1;
+        } else if (item) {
+          item.inert = false;
+          item.removeAttribute('aria-hidden');
+          if (card.matches('a')) card.removeAttribute('tabindex');
+        }
         if (cardIndex !== index) card.classList.remove('is-shutter-active');
       });
       const activeCard = cards[index];
       if (!activeCard) return;
+      if (!reveal) {
+        activeCard.classList.remove('is-shutter-active');
+        return;
+      }
       if (replay && activeCard.classList.contains('is-shutter-active')) {
         activeCard.classList.remove('is-shutter-active');
         requestAnimationFrame(() => activeCard.classList.add('is-shutter-active'));
@@ -345,46 +378,78 @@
         activeCard.classList.add('is-shutter-active');
       }
     };
-    if (!window.gsap || !window.ScrollTrigger || reducedMotionQuery.matches || (window.innerHeight < 600 && window.innerWidth > window.innerHeight)) {
-      activateCard(0);
-      return;
-    }
-    const revealObserver = new IntersectionObserver(([entry], observer) => {
-      if (!entry.isIntersecting) return;
-      activateCard(activeIndex, true);
-      observer.disconnect();
-    }, { threshold: .2 });
-    revealObserver.observe(stage);
-    window.gsap.registerPlugin(window.ScrollTrigger);
-    const step = 360 / items.length;
-    const context = window.gsap.context(() => {
-      items.forEach((item, index) => {
-        const angle = index * step;
-        window.gsap.set(item, { rotation: angle });
-        window.gsap.set(cards[index], { rotation: -angle });
-      });
-      const timeline = window.gsap.timeline({
-        scrollTrigger: {
-          trigger: stage,
-          pin: true,
-          start: 'top top',
-          end: () => `+=${Math.max(1500, items.length * Math.min(window.innerHeight * .72, 620))}`,
-          scrub: .65,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-          onEnter: () => activateCard(activeIndex, true),
-          onEnterBack: () => activateCard(activeIndex, true),
-          onUpdate: (self) => {
-            if (self.isActive || self.progress > 0) activateCard(Math.round(self.progress * items.length) % items.length);
+    const stopAnimation = () => {
+      revealObserver?.disconnect();
+      revealObserver = null;
+      context?.revert();
+      context = null;
+    };
+    const startAnimation = () => {
+      activateCard(0, false, true, false);
+      if (!window.gsap || !window.ScrollTrigger) return;
+      revealObserver = new IntersectionObserver(([entry], observer) => {
+        if (!entry.isIntersecting) return;
+        activateCard(activeIndex, true);
+        observer.disconnect();
+      }, { threshold: .2 });
+      revealObserver.observe(stage);
+      window.gsap.registerPlugin(window.ScrollTrigger);
+      const step = 360 / items.length;
+      context = window.gsap.context(() => {
+        items.forEach((item, index) => {
+          const angle = index * step;
+          window.gsap.set(item, { rotation: angle });
+          window.gsap.set(cards[index], { rotation: -angle });
+        });
+        const timeline = window.gsap.timeline({
+          scrollTrigger: {
+            trigger: stage,
+            pin: true,
+            start: 'top top',
+            end: () => `+=${Math.max(1500, items.length * Math.min(window.innerHeight * .72, 620))}`,
+            scrub: .65,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+            onEnter: () => activateCard(activeIndex, true),
+            onEnterBack: () => activateCard(activeIndex, true),
+            onUpdate: (self) => {
+              if (self.isActive || self.progress > 0) activateCard(Math.round(self.progress * items.length) % items.length);
+            },
           },
-        },
-      });
-      timeline
-        .to(items, { rotation: (index) => (index * step) - 360, duration: 1, ease: 'none' }, 0)
-        .to(cards, { rotation: (index) => -(index * step) + 360, duration: 1, ease: 'none' }, 0);
-    }, stage);
-    state.radialContext = context;
-    window.ScrollTrigger.refresh();
+        });
+        timeline
+          .to(items, { rotation: (index) => (index * step) - 360, duration: 1, ease: 'none' }, 0)
+          .to(cards, { rotation: (index) => -(index * step) + 360, duration: 1, ease: 'none' }, 0);
+      }, stage);
+      window.ScrollTrigger.refresh();
+    };
+    const syncMode = () => {
+      if (disposed) return;
+      const staticGallery = reducedMotionQuery.matches || (window.innerHeight < 600 && window.innerWidth > window.innerHeight);
+      const nextMode = staticGallery ? 'static' : 'animated';
+      if (mode === nextMode) {
+        if (!staticGallery) window.ScrollTrigger?.refresh();
+        return;
+      }
+      stopAnimation();
+      mode = nextMode;
+      if (staticGallery) activateCard(0, false, false);
+      else startAnimation();
+    };
+    const scheduleSync = () => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(syncMode);
+    };
+    window.addEventListener('resize', scheduleSync, { passive: true });
+    reducedMotionQuery.addEventListener('change', scheduleSync);
+    state.radialCleanup = () => {
+      disposed = true;
+      cancelAnimationFrame(resizeFrame);
+      window.removeEventListener('resize', scheduleSync);
+      reducedMotionQuery.removeEventListener('change', scheduleSync);
+      stopAnimation();
+    };
+    syncMode();
   }
 
   function setupScrollReveals() {

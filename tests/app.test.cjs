@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const {
   applyPointerForce,
+  buildProjectImageUrl,
   buildTelegramUrl,
   calculateEstimate,
   formatPrice,
@@ -8,6 +9,14 @@ const {
 } = require('../app.js');
 
 assert.equal(typeof applyPointerForce, 'function');
+assert.equal(
+  buildProjectImageUrl('https://s6.iimage.su/s/11/cover.jpg', 'https://portfolio.test'),
+  '/api/project-image?url=https%3A%2F%2Fs6.iimage.su%2Fs%2F11%2Fcover.jpg',
+);
+assert.equal(
+  buildProjectImageUrl('https://cdn.example.com/cover.jpg', 'https://portfolio.test'),
+  'https://cdn.example.com/cover.jpg',
+);
 const nearbyParticle = { x: 110, y: 100, vx: 0, vy: 0 };
 applyPointerForce(nearbyParticle, { x: 100, y: 100, active: true }, 120);
 assert.ok(nearbyParticle.vx > 0, 'nearby particle must react away from the pointer');
@@ -65,5 +74,14 @@ assert.deepEqual(normalizeProjects([
   sortOrder: 10,
   published: false,
 }]);
+
+assert.equal(normalizeProjects([{
+  id: 4,
+  title: 'Pulse',
+  category: 'Спортзал',
+  image_url: 'https://s6.iimage.su/s/11/legacy-pulse.jpg',
+}])[0].imageUrl, './assets/projects/pulse.jpg');
+assert.equal(normalizeProjects([{ id: 5, image_url: '' }])[0].imageUrl, './assets/projects/blue-sea.jpg');
+assert.equal(normalizeProjects([{ id: 6, image_url: 'https://iimg.su/i/legacy-bravo' }])[0].imageUrl, './assets/projects/bravo.jpg');
 
 console.log('app tests passed');

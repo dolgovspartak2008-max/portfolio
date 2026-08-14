@@ -27,6 +27,18 @@ const { chromium } = require('playwright');
     : {};
   assert.ok((await page.screenshot(normalOptions)).length > 3000);
 
+  const interruptedPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await interruptedPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  await interruptedPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+  await interruptedPage.waitForFunction(() => window.__ready === true);
+  await interruptedPage.evaluate(() => { window.__introTimeline.pause(1.48); });
+  await interruptedPage.waitForTimeout(3400);
+  assert.deepEqual(await interruptedPage.evaluate(() => ({
+    done: document.getElementById('intro').classList.contains('is-done'),
+    bodyLocked: document.body.classList.contains('intro-active'),
+    htmlPending: document.documentElement.classList.contains('intro-pending'),
+  })), { done: true, bodyLocked: false, htmlPending: false });
+
   await page.goto('http://127.0.0.1:4173/?t=2.1', { waitUntil: 'networkidle' });
   await page.waitForFunction(() => window.__ready === true);
   assert.equal(await page.locator('#intro').evaluate((element) => {
@@ -65,18 +77,27 @@ const { chromium } = require('playwright');
     element.classList.remove('is-shutter-active');
     void element.offsetWidth;
     element.classList.add('is-shutter-active');
-    const animations = element.getAnimations({ subtree: true });
+    const animations = element.querySelector('h3').getAnimations();
     animations.forEach((animation) => {
       animation.pause();
       animation.currentTime = 260;
     });
     return animations.map((animation) => animation.animationName);
   });
-  assert.ok(titleAnimationNames.includes('project-shutter-right'));
-  assert.ok(titleAnimationNames.includes('project-shutter-left'));
+  assert.ok(titleAnimationNames.includes('project-title-write'));
 
   await reducedPage.locator('.project-card').first().waitFor();
-  assert.ok(await reducedPage.locator('.project-card__glyph-top').first().evaluate((element) => (
+  const reducedGallery = await reducedPage.locator('.radial-wheel').evaluate((wheel) => {
+    const items = Array.from(wheel.querySelectorAll('.radial-wheel__item'));
+    const boxes = items.map((item) => item.getBoundingClientRect());
+    const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    return {
+      allAccessible: items.every((item) => !item.inert && !item.hasAttribute('aria-hidden') && getComputedStyle(item).opacity === '1'),
+      noOverlap: boxes.every((box, index) => boxes.slice(index + 1).every((other) => !intersects(box, other))),
+    };
+  });
+  assert.deepEqual(reducedGallery, { allAccessible: true, noOverlap: true });
+  assert.ok(await reducedPage.locator('.project-card h3').first().evaluate((element) => (
     parseFloat(getComputedStyle(element).animationDuration) <= .001
   )));
   if (process.env.CAPTURE_DIR) {
@@ -109,6 +130,7 @@ const { chromium } = require('playwright');
     document.documentElement.style.scrollBehavior = 'auto';
     window.ScrollTrigger?.getAll().forEach((trigger) => trigger.kill());
     window.gsap?.globalTimeline.clear();
+    document.querySelectorAll('.project-card').forEach((card) => card.classList.remove('is-shutter-active'));
     document.getElementById('intro')?.remove();
     document.getElementById('flow-canvas')?.remove();
     document.getElementById('contacts').scrollIntoView();
@@ -120,6 +142,7 @@ const { chromium } = require('playwright');
     await reducedPage.locator('.final-cta').screenshot({ path: path.join(process.env.CAPTURE_DIR, 'shiny-reduced.png') });
   }
   await page.close();
+  await interruptedPage.close();
   await mobileIntroPage.close();
   await reducedPage.close();
   const client = await motionPage.context().newCDPSession(motionPage);

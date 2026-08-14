@@ -24,33 +24,11 @@
     { "name": "Vercel", "code": "V" }
   ],
   "projects": [
-    {
-      "id": "demo-coffee",
-      "title": "Лендинг кофейни",
-      "category": "Тестовая работа",
-      "liveUrl": "",
-      "imageUrl": "",
-      "sortOrder": 1,
-      "published": true
-    },
-    {
-      "id": "demo-renovation",
-      "title": "Сайт студии ремонта",
-      "category": "Тестовая работа",
-      "liveUrl": "",
-      "imageUrl": "",
-      "sortOrder": 2,
-      "published": true
-    },
-    {
-      "id": "demo-expert",
-      "title": "Промо для эксперта",
-      "category": "Тестовая работа",
-      "liveUrl": "",
-      "imageUrl": "",
-      "sortOrder": 3,
-      "published": true
-    }
+    { "id": 4, "title": "Pulse", "category": "Спортзал", "liveUrl": "https://pulse-fitness-club-two.vercel.app/", "imageUrl": "./assets/projects/pulse.jpg", "sortOrder": 1, "published": true },
+    { "id": 5, "title": "BlueSea", "category": "Дом отдыха", "liveUrl": "https://sea-plum.vercel.app/", "imageUrl": "./assets/projects/blue-sea.jpg", "sortOrder": 2, "published": true },
+    { "id": 6, "title": "BRAVO", "category": "Танцевальный клуб", "liveUrl": "https://bravo-lilac.vercel.app/", "imageUrl": "./assets/projects/bravo.jpg", "sortOrder": 3, "published": true },
+    { "id": 7, "title": "СтейкХаус", "category": "Ресторан", "liveUrl": "https://st-house-lemon.vercel.app/", "imageUrl": "./assets/projects/steak-house.jpg", "sortOrder": 4, "published": true },
+    { "id": 8, "title": "PRECISION AUTO", "category": "Автосервис", "liveUrl": "https://autosalon-ruby.vercel.app/", "imageUrl": "./assets/projects/precision-auto.jpg", "sortOrder": 5, "published": true }
   ],
   "pricing": {
     "base": {
