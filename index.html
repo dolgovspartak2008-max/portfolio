@@ -98,11 +98,16 @@
       <div class="post-hero" id="post-hero">
         <div class="flow-layer" aria-hidden="true"><canvas id="flow-canvas"></canvas></div>
 
+        <aside class="proof-strip" id="proof-strip" aria-label="Подтверждённый опыт">
+          <p><strong>5 живых лендингов</strong> для фитнеса, отдыха, танцев, ресторанов и автосервиса.</p>
+          <a href="#works">Смотреть кейсы <span aria-hidden="true">↓</span></a>
+        </aside>
+
         <section class="section stack-section" id="stack" aria-labelledby="stack-title">
           <div class="section-heading">
-            <p class="section-kicker">01 / Инструменты</p>
-            <h2 id="stack-title">Стек для быстрых и надёжных запусков</h2>
-            <p>Технологии подбираются под задачу, а не ради длинного списка.</p>
+            <p class="section-kicker">01 / Результат</p>
+            <h2 id="stack-title">Что получает бизнес, а не разработчик</h2>
+            <p>Технологии остаются внутри. На поверхности — понятный сайт, готовый вести посетителя к заявке.</p>
           </div>
           <div class="stack-grid" id="stack-list" aria-live="polite"></div>
         </section>
@@ -111,16 +116,32 @@
           <div class="section-heading section-heading--split">
             <div>
               <p class="section-kicker">02 / Работы</p>
-              <h2 id="works-title">Портфолио</h2>
+              <h2 id="works-title">Живые лендинги для разных ниш</h2>
             </div>
-            <p>Здесь будут опубликованы реальные проекты — без шаблонных кейсов и выдуманных результатов.</p>
+            <p id="portfolio-copy">Каждый кейс можно открыть, изучить на desktop или телефоне и проверить вживую.</p>
           </div>
           <div id="projects-root"></div>
         </section>
 
+        <section class="section process-section" id="process" aria-labelledby="process-title">
+          <div class="section-heading section-heading--split">
+            <div>
+              <p class="section-kicker">03 / Процесс</p>
+              <h2 id="process-title">От задачи до работающей ссылки</h2>
+            </div>
+            <p>Без длинных согласований и скрытых этапов. На каждом шаге понятно, что происходит дальше.</p>
+          </div>
+          <ol class="process-list">
+            <li><span>01</span><div><h3>Короткий бриф</h3><p>Фиксируем цель, аудиторию, материалы и нужное действие посетителя.</p></div></li>
+            <li><span>02</span><div><h3>Структура и дизайн</h3><p>Собираю смысловой сценарий, визуальную систему и адаптивные состояния.</p></div></li>
+            <li><span>03</span><div><h3>Разработка</h3><p>Верстаю, подключаю интерактив, проверяю скорость, формы и мобильную версию.</p></div></li>
+            <li><span>04</span><div><h3>Правки и запуск</h3><p>Вносим согласованные корректировки, подключаем домен и публикуем сайт.</p></div></li>
+          </ol>
+        </section>
+
         <section class="section pricing-section" id="pricing" aria-labelledby="pricing-title">
           <div class="section-heading">
-            <p class="section-kicker">03 / Стоимость</p>
+            <p class="section-kicker">04 / Стоимость</p>
             <h2 id="pricing-title">Соберите свой вариант лендинга</h2>
             <p>Базовая стоимость понятна сразу. Дополнения можно включить по необходимости.</p>
           </div>
@@ -129,7 +150,7 @@
             <article class="base-package">
               <div class="base-package__top">
                 <span class="status-dot"><span></span> Базовый лендинг</span>
-                <strong id="base-price">3 000 ₽</strong>
+                <strong id="base-price">5 000 ₽</strong>
               </div>
               <h3>Готовая одностраничная страница для бизнеса</h3>
               <p>Подойдёт, чтобы рассказать об услуге, показать ценность и привести клиента к заявке.</p>
@@ -141,7 +162,7 @@
               <div class="calculator__base" aria-label="Базовая услуга выбрана">
                 <span class="fixed-check" aria-hidden="true">✓</span>
                 <div><strong>Базовая разработка</strong><small>Всегда включена</small></div>
-                <b>3 000 ₽</b>
+                <b id="calculator-base-price">5 000 ₽</b>
               </div>
 
               <details class="extras-disclosure">
@@ -152,12 +173,50 @@
                 <div class="extras-list" id="services-list"></div>
               </details>
 
+              <details class="brief-disclosure">
+                <summary>
+                  <span>Три вопроса о проекте</span>
+                  <span class="summary-icon" aria-hidden="true"></span>
+                </summary>
+                <div class="brief-grid">
+                  <label for="business-type">
+                    <span>Что вы продвигаете?</span>
+                    <select id="business-type" name="businessType">
+                      <option value="">Не выбрано</option>
+                      <option>Услуги</option>
+                      <option>Экспертный продукт</option>
+                      <option>Заведение</option>
+                      <option>Мероприятие</option>
+                      <option>Другое</option>
+                    </select>
+                  </label>
+                  <label for="content-status">
+                    <span>Контент уже готов?</span>
+                    <select id="content-status" name="contentStatus">
+                      <option value="">Не выбрано</option>
+                      <option>Готов</option>
+                      <option>Частично готов</option>
+                      <option>Нужна помощь</option>
+                    </select>
+                  </label>
+                  <label for="project-timeline">
+                    <span>Желаемый срок</span>
+                    <select id="project-timeline" name="timeline">
+                      <option value="">Не выбрано</option>
+                      <option>До 2 недель</option>
+                      <option>2–4 недели</option>
+                      <option>Не срочно</option>
+                    </select>
+                  </label>
+                </div>
+              </details>
+
               <div class="estimate" aria-live="polite">
                 <p>Ваш расчёт</p>
                 <div class="estimate__lines" id="estimate-lines"></div>
                 <div class="estimate__total">
                   <span>Предварительная стоимость</span>
-                  <strong id="estimate-total">3 000 ₽</strong>
+                  <strong id="estimate-total">5 000 ₽</strong>
                 </div>
               </div>
 
@@ -169,7 +228,7 @@
 
         <section class="section final-cta" id="contacts" aria-labelledby="contact-title">
           <div class="final-cta__glow" aria-hidden="true"></div>
-          <p class="section-kicker">04 / Контакты</p>
+          <p class="section-kicker">05 / Контакты</p>
           <h2 id="contact-title">Есть задача? Давайте сделаем из неё понятный сайт.</h2>
           <p>Напишите в Telegram — обсудим цель, структуру и оптимальный формат запуска.</p>
           <div class="final-cta__actions">
@@ -179,6 +238,11 @@
         </section>
       </div>
     </main>
+
+    <aside class="mobile-order-bar" aria-label="Быстрый переход к обсуждению проекта">
+      <div><small>Лендинг от</small><strong id="mobile-estimate-total">5 000 ₽</strong></div>
+      <a id="mobile-telegram-order" href="https://t.me/spartlak" target="_blank" rel="noopener noreferrer">Обсудить проект</a>
+    </aside>
 
     <footer class="footer">
       <a class="brand brand--footer" href="#home"><span class="brand__icon" aria-hidden="true">&lt;/&gt;</span><strong>Спартак</strong></a>

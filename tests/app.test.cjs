@@ -25,7 +25,7 @@ applyPointerForce(distantParticle, { x: 100, y: 100, active: true }, 120);
 assert.deepEqual(distantParticle, { x: 500, y: 500, vx: 1, vy: 1 });
 
 const pricing = {
-  base: { title: 'Базовая разработка лендинга', price: 3000 },
+  base: { title: 'Базовая разработка лендинга', price: 5000 },
   extras: [
     { key: 'domain', title: 'Подключение домена', price: 500, isFrom: false },
     { key: 'hosting', title: 'Подключение хостинга', price: 500, isFrom: false },
@@ -37,23 +37,30 @@ const pricing = {
 assert.equal(formatPrice(3000), '3 000 ₽');
 
 assert.deepEqual(calculateEstimate(pricing, []), {
-  total: 3000,
+  total: 5000,
   isFrom: false,
   selected: [],
 });
 
 assert.deepEqual(calculateEstimate(pricing, ['domain', 'animations']), {
-  total: 4500,
+  total: 6500,
   isFrom: true,
   selected: [pricing.extras[0], pricing.extras[2]],
 });
 
-const url = buildTelegramUrl('spartlak', pricing, ['animations']);
+const url = buildTelegramUrl('spartlak', pricing, ['animations'], {
+  businessType: 'Заведение',
+  contentStatus: 'Частично готов',
+  timeline: '2–4 недели',
+});
 assert.ok(url.startsWith('https://t.me/spartlak?text='));
 const message = decodeURIComponent(url.split('?text=')[1]);
-assert.match(message, /Базовая разработка лендинга — 3 000 ₽/);
+assert.match(message, /Базовая разработка лендинга — 5 000 ₽/);
 assert.match(message, /Создание анимаций — от 1 000 ₽/);
-assert.match(message, /Предварительная стоимость: от 4 000 ₽/);
+assert.match(message, /Предварительная стоимость: от 6 000 ₽/);
+assert.match(message, /Тип бизнеса: Заведение/);
+assert.match(message, /Контент: Частично готов/);
+assert.match(message, /Срок: 2–4 недели/);
 
 assert.deepEqual(normalizeProjects([
   {

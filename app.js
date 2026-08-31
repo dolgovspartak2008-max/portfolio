@@ -35,6 +35,8 @@
       imageUrl: localImage || sourceImage,
       sortOrder: project.sortOrder ?? project.sort_order ?? 0,
       published: project.published,
+      ...(project.caseStudy ? { caseStudy: project.caseStudy } : {}),
+      ...(project.previews ? { previews: project.previews } : {}),
     };
   });
 
@@ -65,7 +67,7 @@
     particle.vy += (ny + nx * .28) * force;
   };
 
-  const buildTelegramUrl = (username, pricing, selectedKeys) => {
+  const buildTelegramUrl = (username, pricing, selectedKeys, brief = {}) => {
     const cleanUsername = String(username || '').trim().replace(/^@/, '');
     if (!cleanUsername) return '';
 
@@ -75,11 +77,17 @@
       ...estimate.selected.map((item) => `— ${item.title} — ${item.isFrom ? 'от ' : ''}${formatPrice(item.price)}`),
     ];
     const totalLabel = `${estimate.isFrom ? 'от ' : ''}${formatPrice(estimate.total)}`;
+    const briefRows = [
+      ['Тип бизнеса', brief.businessType],
+      ['Контент', brief.contentStatus],
+      ['Срок', brief.timeline],
+    ].filter(([, value]) => value);
     const message = [
       'Здравствуйте! Хочу заказать лендинг.',
       '',
       'Выбранные услуги:',
       ...rows,
+      ...(briefRows.length ? ['', 'О проекте:', ...briefRows.map(([label, value]) => `${label}: ${value}`)] : []),
       '',
       `Предварительная стоимость: ${totalLabel}`,
       '',
@@ -103,7 +111,12 @@
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
   const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const state = { content: null, selected: new Set(), radialCleanup: null, scrollContext: null };
+  const state = {
+    content: null,
+    selected: new Set(),
+    brief: { businessType: '', contentStatus: '', timeline: '' },
+    scrollContext: null,
+  };
 
   const setText = (selector, value) => {
     const element = document.querySelector(selector);
@@ -245,18 +258,192 @@
   function renderStack(items) {
     const root = document.getElementById('stack-list');
     if (!root) return;
-    root.replaceChildren(...items.map((item) => {
-      const card = document.createElement('div');
-      card.className = 'stack-item';
-      const code = document.createElement('span');
-      code.className = 'stack-item__code';
-      code.setAttribute('aria-hidden', 'true');
-      code.textContent = item.code;
-      const name = document.createElement('strong');
-      name.textContent = item.name;
-      card.append(code, name);
-      return card;
+    root.replaceChildren(...items.map((item, index) => {
+      const outcome = document.createElement('article');
+      outcome.className = 'outcome-item';
+      const number = document.createElement('span');
+      number.className = 'outcome-item__number';
+      number.setAttribute('aria-hidden', 'true');
+      number.textContent = String(index + 1).padStart(2, '0');
+      const title = document.createElement('h3');
+      title.textContent = item.title;
+      const description = document.createElement('p');
+      description.textContent = item.description;
+      outcome.append(number, title, description);
+      return outcome;
     }));
+  }
+
+  function renderProjectShowcase(projects) {
+    const root = document.getElementById('projects-root');
+    if (!root) return;
+    if (!projects.length) {
+      root.innerHTML = '<div class="empty-state"><div class="empty-state__content"><h3>Новые проекты скоро появятся</h3><p>Можно обсудить ваш проект уже сегодня.</p><a class="button button--primary" href="#pricing">Рассчитать свой проект</a></div></div>';
+      return;
+    }
+
+    let activeIndex = 0;
+    let device = 'desktop';
+    const showcase = document.createElement('div');
+    showcase.className = 'project-showcase';
+
+    const selector = document.createElement('div');
+    selector.className = 'project-selector';
+    selector.setAttribute('role', 'tablist');
+    selector.setAttribute('aria-label', 'Выберите проект');
+
+    const stage = document.createElement('div');
+    stage.className = 'project-stage';
+    const controls = document.createElement('div');
+    controls.className = 'project-stage__controls';
+    const controlLabel = document.createElement('span');
+    controlLabel.textContent = 'Просмотр';
+    const deviceSwitch = document.createElement('div');
+    deviceSwitch.className = 'device-switch';
+    deviceSwitch.setAttribute('role', 'group');
+    deviceSwitch.setAttribute('aria-label', 'Размер макета');
+    const desktopButton = document.createElement('button');
+    desktopButton.type = 'button';
+    desktopButton.textContent = 'Desktop';
+    desktopButton.setAttribute('aria-label', 'Версия для компьютера');
+    const mobileButton = document.createElement('button');
+    mobileButton.type = 'button';
+    mobileButton.textContent = 'Mobile';
+    mobileButton.setAttribute('aria-label', 'Мобильная версия');
+    deviceSwitch.append(desktopButton, mobileButton);
+    controls.append(controlLabel, deviceSwitch);
+
+    const preview = document.createElement('div');
+    preview.className = 'project-preview';
+    preview.dataset.device = device;
+    const browserBar = document.createElement('div');
+    browserBar.className = 'project-preview__bar';
+    browserBar.innerHTML = '<span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>';
+    const address = document.createElement('small');
+    browserBar.append(address);
+    const picture = document.createElement('picture');
+    const avifSource = document.createElement('source');
+    avifSource.type = 'image/avif';
+    const previewImage = document.createElement('img');
+    previewImage.loading = 'lazy';
+    previewImage.decoding = 'async';
+    previewImage.width = 1440;
+    previewImage.height = 900;
+    picture.append(avifSource, previewImage);
+    preview.append(browserBar, picture);
+
+    const detail = document.createElement('article');
+    detail.className = 'case-detail';
+    detail.id = 'case-detail';
+    detail.setAttribute('role', 'tabpanel');
+    detail.setAttribute('aria-live', 'polite');
+    const category = document.createElement('p');
+    category.className = 'case-detail__category';
+    const title = document.createElement('h3');
+    const facts = document.createElement('dl');
+    const liveLink = document.createElement('a');
+    liveLink.className = 'button button--secondary';
+    liveLink.target = '_blank';
+    liveLink.rel = 'noopener noreferrer';
+    liveLink.textContent = 'Открыть живой сайт';
+    detail.append(category, title, facts, liveLink);
+    stage.append(controls, preview, detail);
+
+    const projectButtons = projects.map((project, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'project-tab';
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-controls', detail.id);
+      const number = document.createElement('span');
+      number.textContent = String(index + 1).padStart(2, '0');
+      number.setAttribute('aria-hidden', 'true');
+      const copy = document.createElement('span');
+      const name = document.createElement('strong');
+      name.textContent = project.title;
+      const type = document.createElement('small');
+      type.textContent = project.category;
+      copy.append(name, type);
+      button.append(number, copy);
+      button.addEventListener('click', () => selectProject(index));
+      selector.append(button);
+      return button;
+    });
+
+    const updatePreview = (project) => {
+      const files = project.previews?.[device] || {};
+      if (files.avif) avifSource.srcset = files.avif;
+      else avifSource.removeAttribute('srcset');
+      previewImage.src = files.webp || buildProjectImageUrl(project.imageUrl, location.origin);
+      previewImage.alt = `Первый экран сайта «${project.title}» — ${device === 'desktop' ? 'версия для компьютера' : 'мобильная версия'}`;
+      previewImage.width = device === 'desktop' ? 1440 : 390;
+      previewImage.height = device === 'desktop' ? 900 : 844;
+      preview.dataset.device = device;
+      address.textContent = (() => {
+        try { return new URL(project.liveUrl).hostname; } catch (_) { return project.title; }
+      })();
+    };
+
+    const selectDevice = (nextDevice) => {
+      device = nextDevice;
+      desktopButton.setAttribute('aria-pressed', String(device === 'desktop'));
+      mobileButton.setAttribute('aria-pressed', String(device === 'mobile'));
+      updatePreview(projects[activeIndex]);
+    };
+
+    function selectProject(index) {
+      activeIndex = index;
+      const project = projects[index];
+      projectButtons.forEach((button, buttonIndex) => {
+        const selected = buttonIndex === index;
+        button.setAttribute('aria-selected', String(selected));
+        button.tabIndex = selected ? 0 : -1;
+      });
+      category.textContent = project.category;
+      title.textContent = project.title;
+      const rows = [
+        ['Задача', project.caseStudy?.challenge],
+        ['Решение', project.caseStudy?.approach],
+        ['Результат', project.caseStudy?.outcome],
+      ];
+      facts.replaceChildren(...rows.flatMap(([label, value]) => {
+        const term = document.createElement('dt');
+        term.textContent = label;
+        const description = document.createElement('dd');
+        description.textContent = value || 'Подробности проекта доступны на живом сайте.';
+        return [term, description];
+      }));
+      let safeUrl = '';
+      try {
+        const parsed = new URL(project.liveUrl);
+        if (['http:', 'https:'].includes(parsed.protocol)) safeUrl = parsed.href;
+      } catch (_) { safeUrl = ''; }
+      liveLink.href = safeUrl || '#contacts';
+      liveLink.target = safeUrl ? '_blank' : '_self';
+      updatePreview(project);
+    }
+
+    desktopButton.addEventListener('click', () => selectDevice('desktop'));
+    mobileButton.addEventListener('click', () => selectDevice('mobile'));
+    selector.addEventListener('keydown', (event) => {
+      const current = projectButtons.indexOf(document.activeElement);
+      if (current < 0) return;
+      const moves = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+      if (!(event.key in moves) && !['Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const next = event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? projectButtons.length - 1
+          : (current + moves[event.key] + projectButtons.length) % projectButtons.length;
+      selectProject(next);
+      projectButtons[next].focus();
+    });
+
+    showcase.append(selector, stage);
+    root.replaceChildren(showcase);
+    selectDevice('desktop');
+    selectProject(0);
   }
 
   function renderProjects(projects) {
@@ -494,7 +681,7 @@
     if (!window.gsap || !window.ScrollTrigger || reducedMotionQuery.matches) return;
     if (state.scrollContext) state.scrollContext.revert();
     state.scrollContext = window.gsap.context(() => {
-      window.ScrollTrigger.batch('.section-heading, .stack-grid, .empty-state, .pricing-layout, .final-cta', {
+      window.ScrollTrigger.batch('.proof-strip, .section-heading, .stack-grid, .project-showcase, .process-list, .pricing-layout, .final-cta', {
         start: 'top 86%',
         once: true,
         onEnter: (elements) => window.gsap.fromTo(elements,
@@ -508,6 +695,7 @@
   function renderPricing(content) {
     const { pricing, owner } = content;
     setText('#base-price', formatPrice(pricing.base.price));
+    setText('#calculator-base-price', formatPrice(pricing.base.price));
 
     const includedRoot = document.getElementById('included-list');
     if (includedRoot) {
@@ -540,6 +728,15 @@
       }));
     }
 
+    ['businessType', 'contentStatus', 'timeline'].forEach((name) => {
+      const field = document.querySelector(`[name="${name}"]`);
+      if (!field) return;
+      field.addEventListener('change', (event) => {
+        state.brief[name] = event.currentTarget.value;
+        updateEstimate(owner, pricing);
+      });
+    });
+
     updateEstimate(owner, pricing);
   }
 
@@ -562,9 +759,12 @@
     }
     setText('#estimate-total', `${estimate.isFrom ? 'от ' : ''}${formatPrice(estimate.total)}`);
 
-    const orderLink = document.getElementById('telegram-order');
-    const url = buildTelegramUrl(owner.telegramUsername, pricing, selectedKeys);
-    if (orderLink && url) orderLink.href = url;
+    const url = buildTelegramUrl(owner.telegramUsername, pricing, selectedKeys, state.brief);
+    ['telegram-order', 'mobile-telegram-order'].forEach((id) => {
+      const orderLink = document.getElementById(id);
+      if (orderLink && url) orderLink.href = url;
+    });
+    setText('#mobile-estimate-total', `${estimate.isFrom ? 'от ' : ''}${formatPrice(estimate.total)}`);
   }
 
   function setupNavigation() {
@@ -572,22 +772,28 @@
     const menu = document.querySelector('.menu-button');
     const nav = document.getElementById('site-nav');
     const links = Array.from(document.querySelectorAll('.site-nav a'));
+    const mobileNavigationQuery = window.matchMedia('(max-width: 760px)');
 
     const syncHeader = () => header?.classList.toggle('is-scrolled', window.scrollY > 18);
     syncHeader();
     window.addEventListener('scroll', syncHeader, { passive: true });
 
-    menu?.addEventListener('click', () => {
-      const open = menu.getAttribute('aria-expanded') !== 'true';
-      menu.setAttribute('aria-expanded', String(open));
-      menu.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
-      nav?.classList.toggle('is-open', open);
+    const setMenuOpen = (open) => {
+      const expanded = mobileNavigationQuery.matches && open;
+      menu?.setAttribute('aria-expanded', String(expanded));
+      menu?.setAttribute('aria-label', expanded ? 'Закрыть меню' : 'Открыть меню');
+      nav?.classList.toggle('is-open', expanded);
+      if (nav) nav.inert = mobileNavigationQuery.matches && !expanded;
+    };
+    setMenuOpen(false);
+    menu?.addEventListener('click', () => setMenuOpen(menu.getAttribute('aria-expanded') !== 'true'));
+    links.forEach((link) => link.addEventListener('click', () => setMenuOpen(false)));
+    mobileNavigationQuery.addEventListener('change', () => setMenuOpen(false));
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || menu?.getAttribute('aria-expanded') !== 'true') return;
+      setMenuOpen(false);
+      menu.focus();
     });
-    links.forEach((link) => link.addEventListener('click', () => {
-      menu?.setAttribute('aria-expanded', 'false');
-      menu?.setAttribute('aria-label', 'Открыть меню');
-      nav?.classList.remove('is-open');
-    }));
 
     const sections = links.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
     const observer = new IntersectionObserver((entries) => {
@@ -720,11 +926,17 @@
         const projectsResponse = await fetch('/api/projects', { cache: 'no-store' });
         if (!projectsResponse.ok) throw new Error(`Projects request failed: ${projectsResponse.status}`);
         const apiProjects = await projectsResponse.json();
-        if (Array.isArray(apiProjects) && apiProjects.length) projects = apiProjects;
+        if (Array.isArray(apiProjects) && apiProjects.length) {
+          const localProjects = new Map(content.projects.map((project) => [String(project.id), project]));
+          projects = apiProjects.map((project) => ({
+            ...localProjects.get(String(project.id)),
+            ...project,
+          }));
+        }
       } catch (_) { /* Local preview and API failures use the JSON fallback. */ }
       state.content = content;
-      renderStack(content.stack);
-      renderProjects(normalizeProjects(projects).filter((project) => project.published !== false));
+      renderStack(content.outcomes || content.stack);
+      renderProjectShowcase(normalizeProjects(projects).filter((project) => project.published !== false));
       renderPricing(content);
       setupScrollReveals();
     } catch (_) {

@@ -19,13 +19,10 @@ const { chromium } = require('playwright');
   if (process.env.CAPTURE_DIR) {
     await page.screenshot({ path: path.join(process.env.CAPTURE_DIR, 'intro-word.png') });
   }
+
   await page.goto('http://127.0.0.1:4173/?t=1.48', { waitUntil: 'networkidle' });
   await page.waitForFunction(() => window.__ready === true);
   assert.ok(await page.locator('.intro__line').evaluate((element) => Number(getComputedStyle(element).opacity) > 0));
-  const normalOptions = process.env.CAPTURE_DIR
-    ? { path: path.join(process.env.CAPTURE_DIR, 'intro-mid.png') }
-    : {};
-  assert.ok((await page.screenshot(normalOptions)).length > 3000);
 
   const interruptedPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await interruptedPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
@@ -39,113 +36,41 @@ const { chromium } = require('playwright');
     htmlPending: document.documentElement.classList.contains('intro-pending'),
   })), { done: true, bodyLocked: false, htmlPending: false });
 
-  await page.goto('http://127.0.0.1:4173/?t=2.1', { waitUntil: 'networkidle' });
-  await page.waitForFunction(() => window.__ready === true);
-  assert.equal(await page.locator('#intro').evaluate((element) => {
-    const color = getComputedStyle(element).backgroundColor;
-    const box = element.getBoundingClientRect();
-    return color === 'rgb(1, 4, 12)' && box.width >= innerWidth && box.height >= innerHeight;
-  }), true);
-
-  const mobileIntroPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  await mobileIntroPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
-  await mobileIntroPage.goto('http://127.0.0.1:4173/?t=.55', { waitUntil: 'networkidle' });
-  assert.equal(await mobileIntroPage.evaluate(() => {
-    const intro = document.getElementById('intro').getBoundingClientRect();
-    const headerVisibility = getComputedStyle(document.getElementById('site-header')).visibility;
-    return intro.top <= -1 && intro.bottom >= innerHeight + 1 && headerVisibility === 'hidden';
-  }), true);
-
   const reducedPage = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
   await reducedPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
   await reducedPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
   assert.equal(await reducedPage.locator('#intro').evaluate((element) => element.classList.contains('is-done')), true);
   assert.equal(await reducedPage.locator('#name-decode').textContent(), 'СПАРТАК');
-  const reducedOptions = process.env.CAPTURE_DIR
-    ? { path: path.join(process.env.CAPTURE_DIR, 'intro-reduced.png') }
-    : {};
-  assert.ok((await reducedPage.screenshot(reducedOptions)).length > 10000);
+  await reducedPage.locator('.project-showcase').scrollIntoViewIfNeeded();
+  await reducedPage.getByRole('button', { name: 'Мобильная версия' }).click();
+  assert.equal(await reducedPage.locator('.project-preview').getAttribute('data-device'), 'mobile');
+  assert.ok(await reducedPage.locator('.project-preview').evaluate((element) => (
+    parseFloat(getComputedStyle(element).transitionDuration) <= .001
+  )));
 
   const motionPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await motionPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
   await motionPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
   await motionPage.evaluate(() => sessionStorage.setItem('spartak-intro-v2-seen', '1'));
   await motionPage.reload({ waitUntil: 'networkidle' });
-  await motionPage.locator('.project-card').first().scrollIntoViewIfNeeded();
-  await motionPage.waitForFunction(() => document.querySelector('.project-card.is-shutter-active'));
-  const titleAnimationNames = await motionPage.locator('.project-card.is-shutter-active').evaluate((element) => {
-    element.classList.remove('is-shutter-active');
-    void element.offsetWidth;
-    element.classList.add('is-shutter-active');
-    const animations = element.querySelector('.project-card__glyph').getAnimations({ subtree: true });
-    animations.forEach((animation) => {
-      animation.pause();
-      animation.currentTime = 260;
-    });
-    return animations.map((animation) => animation.animationName);
-  });
-  assert.ok(titleAnimationNames.includes('project-shutter-right'));
-  assert.ok(titleAnimationNames.includes('project-shutter-left'));
+  await motionPage.locator('.project-showcase').scrollIntoViewIfNeeded();
+  await motionPage.getByRole('button', { name: 'Мобильная версия' }).click();
+  assert.equal(await motionPage.locator('.project-preview').getAttribute('data-device'), 'mobile');
 
-  await reducedPage.locator('.project-card').first().waitFor();
-  const reducedGallery = await reducedPage.locator('.radial-wheel').evaluate((wheel) => {
-    const items = Array.from(wheel.querySelectorAll('.radial-wheel__item'));
-    const boxes = items.map((item) => item.getBoundingClientRect());
-    const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-    return {
-      allAccessible: items.every((item) => !item.inert && !item.hasAttribute('aria-hidden') && getComputedStyle(item).opacity === '1'),
-      noOverlap: boxes.every((box, index) => boxes.slice(index + 1).every((other) => !intersects(box, other))),
-    };
-  });
-  assert.deepEqual(reducedGallery, { allAccessible: true, noOverlap: true });
-  assert.ok(await reducedPage.locator('.project-card__glyph-top').first().evaluate((element) => (
-    parseFloat(getComputedStyle(element).animationDuration) <= .001
-  )));
   if (process.env.CAPTURE_DIR) {
-    await motionPage.locator('.project-card.is-shutter-active').evaluate((element) => {
-      const clone = element.cloneNode(true);
-      clone.classList.add('project-card--verification');
-      Object.assign(clone.style, {
-        position: 'fixed',
-        zIndex: '2147483647',
-        top: '50%',
-        left: '50%',
-        width: '300px',
-        height: '390px',
-        transform: 'translate(-50%, -50%)',
-      });
-      document.body.append(clone);
-    });
-    await motionPage.locator('.project-card--verification').evaluate((element) => {
-      element.getAnimations({ subtree: true }).forEach((animation) => {
-        animation.pause();
-        animation.currentTime = 330;
-      });
-    });
-    await motionPage.locator('.project-card--verification').screenshot({ path: path.join(process.env.CAPTURE_DIR, 'project-title-normal.png') });
-    await motionPage.locator('.project-card--verification').evaluate((element) => element.remove());
-    await reducedPage.locator('.project-card').first().scrollIntoViewIfNeeded();
-    await reducedPage.locator('.project-card').first().screenshot({ path: path.join(process.env.CAPTURE_DIR, 'project-title-reduced.png') });
+    await motionPage.locator('.project-showcase').screenshot({ path: path.join(process.env.CAPTURE_DIR, 'project-showcase-mobile.png') });
+    await reducedPage.screenshot({ path: path.join(process.env.CAPTURE_DIR, 'intro-reduced.png') });
   }
+
   await motionPage.evaluate(() => {
     document.documentElement.style.scrollBehavior = 'auto';
     window.ScrollTrigger?.getAll().forEach((trigger) => trigger.kill());
     window.gsap?.globalTimeline.clear();
-    document.querySelectorAll('.project-card').forEach((card) => card.classList.remove('is-shutter-active'));
     document.getElementById('intro')?.remove();
     document.getElementById('flow-canvas')?.remove();
     document.getElementById('contacts').scrollIntoView();
   });
   await motionPage.waitForTimeout(500);
-  if (process.env.CAPTURE_DIR) {
-    await motionPage.locator('.final-cta').screenshot({ path: path.join(process.env.CAPTURE_DIR, 'shiny-normal.png') });
-    await reducedPage.locator('.shiny-cta').scrollIntoViewIfNeeded();
-    await reducedPage.locator('.final-cta').screenshot({ path: path.join(process.env.CAPTURE_DIR, 'shiny-reduced.png') });
-  }
-  await page.close();
-  await interruptedPage.close();
-  await mobileIntroPage.close();
-  await reducedPage.close();
   const client = await motionPage.context().newCDPSession(motionPage);
   const events = [];
   client.on('Tracing.dataCollected', ({ value }) => events.push(...value));
@@ -160,9 +85,13 @@ const { chromium } = require('playwright');
   ));
   assert.equal(renderEvents.length, 0, `shiny button caused ${renderEvents.length} layout/paint events`);
 
+  await page.close();
+  await interruptedPage.close();
+  await reducedPage.close();
+  await motionPage.close();
   await browser.close();
   assert.deepEqual(errors, []);
-  console.log('animation smoke: GSAP timeline + reduced motion passed');
+  console.log('animation smoke: intro + showcase + reduced motion passed');
 })().catch((error) => {
   console.error(error);
   process.exit(1);

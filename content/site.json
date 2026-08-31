@@ -23,18 +23,125 @@
     { "name": "GitHub", "code": "GH" },
     { "name": "Vercel", "code": "V" }
   ],
+  "outcomes": [
+    {
+      "title": "Понятная структура",
+      "description": "Посетитель быстро понимает предложение, преимущества и следующий шаг."
+    },
+    {
+      "title": "Удобно на любом экране",
+      "description": "Макет адаптируется под телефон, планшет и desktop без обрезанного контента."
+    },
+    {
+      "title": "Быстрая загрузка",
+      "description": "Лёгкий frontend, оптимизированные изображения и минимум лишнего JavaScript."
+    },
+    {
+      "title": "Заметные CTA",
+      "description": "Кнопки ведут к заявке, записи или бронированию без запутанных сценариев."
+    },
+    {
+      "title": "Готово к запуску",
+      "description": "Домен, хостинг, метаданные и публикация собираются в один понятный процесс."
+    }
+  ],
   "projects": [
-    { "id": 4, "title": "Pulse", "category": "Спортзал", "liveUrl": "https://pulse-fitness-club-two.vercel.app/", "imageUrl": "./assets/projects/pulse.jpg", "sortOrder": 1, "published": true },
-    { "id": 5, "title": "BlueSea", "category": "Дом отдыха", "liveUrl": "https://sea-plum.vercel.app/", "imageUrl": "./assets/projects/blue-sea.jpg", "sortOrder": 2, "published": true },
-    { "id": 6, "title": "BRAVO", "category": "Танцевальный клуб", "liveUrl": "https://bravo-lilac.vercel.app/", "imageUrl": "./assets/projects/bravo.jpg", "sortOrder": 3, "published": true },
-    { "id": 7, "title": "СтейкХаус", "category": "Ресторан", "liveUrl": "https://st-house-lemon.vercel.app/", "imageUrl": "./assets/projects/steak-house.jpg", "sortOrder": 4, "published": true },
-    { "id": 8, "title": "PRECISION AUTO", "category": "Автосервис", "liveUrl": "https://autosalon-ruby.vercel.app/", "imageUrl": "./assets/projects/precision-auto.jpg", "sortOrder": 5, "published": true }
+    {
+      "id": 4,
+      "title": "Pulse",
+      "category": "Фитнес-клуб",
+      "liveUrl": "https://pulse-fitness-club-two.vercel.app/",
+      "imageUrl": "./assets/projects/pulse.jpg",
+      "sortOrder": 1,
+      "published": true,
+      "caseStudy": {
+        "challenge": "Собрать сильный образ клуба и быстро провести посетителя к выбору формата тренировок.",
+        "approach": "Энергичный первый экран, зоны клуба, тренеры, тарифы и встроенный калькулятор.",
+        "outcome": "Понятный путь от знакомства с клубом до расчёта подходящего тарифа."
+      },
+      "previews": {
+        "desktop": { "avif": "./assets/projects/previews/pulse-desktop.avif", "webp": "./assets/projects/previews/pulse-desktop.webp" },
+        "mobile": { "avif": "./assets/projects/previews/pulse-mobile.avif", "webp": "./assets/projects/previews/pulse-mobile.webp" }
+      }
+    },
+    {
+      "id": 5,
+      "title": "BlueSea",
+      "category": "Отдых у моря",
+      "liveUrl": "https://sea-plum.vercel.app/",
+      "imageUrl": "./assets/projects/blue-sea.jpg",
+      "sortOrder": 2,
+      "published": true,
+      "caseStudy": {
+        "challenge": "Помочь семье быстро понять формат отдыха, условия размещения и перейти к бронированию.",
+        "approach": "Атмосферная подача, варианты домиков, галерея, отзывы, ответы на вопросы и прямой CTA.",
+        "outcome": "Цельный сценарий выбора отдыха без перегруженного каталога и лишних переходов."
+      },
+      "previews": {
+        "desktop": { "avif": "./assets/projects/previews/blue-sea-desktop.avif", "webp": "./assets/projects/previews/blue-sea-desktop.webp" },
+        "mobile": { "avif": "./assets/projects/previews/blue-sea-mobile.avif", "webp": "./assets/projects/previews/blue-sea-mobile.webp" }
+      }
+    },
+    {
+      "id": 6,
+      "title": "BRAVO",
+      "category": "Студия танца",
+      "liveUrl": "https://bravo-lilac.vercel.app/",
+      "imageUrl": "./assets/projects/bravo.jpg",
+      "sortOrder": 3,
+      "published": true,
+      "caseStudy": {
+        "challenge": "Показать родителям направления, педагогов и атмосферу студии до первого визита.",
+        "approach": "Живая визуальная подача, понятная программа занятий и повторяющиеся точки записи.",
+        "outcome": "Посетитель может познакомиться со студией и записаться на занятие из любого ключевого блока."
+      },
+      "previews": {
+        "desktop": { "avif": "./assets/projects/previews/bravo-desktop.avif", "webp": "./assets/projects/previews/bravo-desktop.webp" },
+        "mobile": { "avif": "./assets/projects/previews/bravo-mobile.avif", "webp": "./assets/projects/previews/bravo-mobile.webp" }
+      }
+    },
+    {
+      "id": 7,
+      "title": "СтейкХаус",
+      "category": "Ресторан",
+      "liveUrl": "https://st-house-lemon.vercel.app/",
+      "imageUrl": "./assets/projects/steak-house.jpg",
+      "sortOrder": 4,
+      "published": true,
+      "caseStudy": {
+        "challenge": "Передать характер ресторана и сократить путь от первого впечатления до бронирования стола.",
+        "approach": "Атмосферный hero, акцент на меню и отзывах, заметная кнопка бронирования.",
+        "outcome": "Эмоциональная витрина ресторана с прямым сценарием отправки заявки."
+      },
+      "previews": {
+        "desktop": { "avif": "./assets/projects/previews/steak-house-desktop.avif", "webp": "./assets/projects/previews/steak-house-desktop.webp" },
+        "mobile": { "avif": "./assets/projects/previews/steak-house-mobile.avif", "webp": "./assets/projects/previews/steak-house-mobile.webp" }
+      }
+    },
+    {
+      "id": 8,
+      "title": "PRECISION AUTO",
+      "category": "Автосервис",
+      "liveUrl": "https://autosalon-ruby.vercel.app/",
+      "imageUrl": "./assets/projects/precision-auto.jpg",
+      "sortOrder": 5,
+      "published": true,
+      "caseStudy": {
+        "challenge": "Упростить выбор услуги и снять тревогу перед обращением в автосервис.",
+        "approach": "Услуги и цены на первом плане, отзывы как доказательство, запись без длинной формы.",
+        "outcome": "Понятный путь от диагностики проблемы до записи на сервис."
+      },
+      "previews": {
+        "desktop": { "avif": "./assets/projects/previews/precision-auto-desktop.avif", "webp": "./assets/projects/previews/precision-auto-desktop.webp" },
+        "mobile": { "avif": "./assets/projects/previews/precision-auto-mobile.avif", "webp": "./assets/projects/previews/precision-auto-mobile.webp" }
+      }
+    }
   ],
   "pricing": {
     "base": {
       "key": "base",
       "title": "Базовая разработка лендинга",
-      "price": 3000,
+      "price": 5000,
       "included": [
         "До 6 смысловых секций",
         "Адаптация под телефон, планшет и desktop",
