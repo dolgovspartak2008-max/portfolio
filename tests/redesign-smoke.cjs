@@ -34,21 +34,19 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#proof-strip').count(), 1);
     assert.match(await page.locator('#proof-strip').textContent(), /5 живых лендингов/);
     assert.equal(await page.locator('#stack-list .outcome-item').count(), 5);
-    assert.equal(await page.locator('.project-showcase').count(), 1);
-    assert.equal(await page.locator('.project-tab').count(), 5);
-    assert.equal(await page.locator('.case-detail dt').count(), 3);
+    assert.equal(await page.locator('.project-showcase').count(), 0);
+    assert.equal(await page.locator('.radial-stage').count(), 1);
+    assert.equal(await page.locator('.radial-wheel__item').count(), 5);
+    assert.equal(await page.locator('.project-card__visual img').count(), 5);
     assert.doesNotMatch(await page.locator('#portfolio-copy').textContent(), /будут опубликованы/i);
 
-    const preview = page.locator('.project-preview img');
-    await preview.waitFor();
-    assert.equal(await preview.getAttribute('loading'), 'lazy');
-    assert.match(await preview.evaluate((image) => image.currentSrc), /pulse-desktop\.(?:avif|webp)$/);
-    await page.locator('.project-tab', { hasText: 'BlueSea' }).click();
-    assert.equal(await page.locator('.case-detail h3').textContent(), 'BlueSea');
-    await page.getByRole('button', { name: 'Мобильная версия' }).click();
-    assert.equal(await page.locator('.project-preview').getAttribute('data-device'), 'mobile');
-    await page.waitForFunction(() => document.querySelector('.project-preview img')?.currentSrc.includes('blue-sea-mobile'));
-    assert.match(await preview.evaluate((image) => image.currentSrc), /blue-sea-mobile\.(?:avif|webp)$/);
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('.project-card__visual img')).every((image) => image.naturalWidth > 0));
+    await page.locator('.radial-stage').scrollIntoViewIfNeeded();
+    await page.waitForFunction(() => document.querySelector('.project-card.is-shutter-active'));
+    assert.deepEqual(await page.locator('.radial-wheel__item').evaluateAll((items) => ({
+      active: items.filter((item) => item.classList.contains('is-active') && !item.inert).length,
+      inactive: items.filter((item) => !item.classList.contains('is-active') && item.inert).length,
+    })), { active: 1, inactive: 4 });
 
     assert.equal(await page.locator('.process-list li').count(), 4);
     await page.locator('.brief-disclosure summary').click();
@@ -73,7 +71,7 @@ const { chromium } = require('playwright');
 
   await browser.close();
   assert.deepEqual(errors, []);
-  console.log('redesign smoke: cases + proof + brief + mobile CTA passed');
+  console.log('redesign smoke: radial portfolio + proof + brief + mobile CTA passed');
 })().catch((error) => {
   console.error(error);
   process.exit(1);

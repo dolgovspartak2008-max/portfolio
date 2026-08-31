@@ -409,6 +409,10 @@ h1, h2, h3, p { text-wrap: pretty; }
 .project-card.is-shutter-active .project-card__glyph-top { animation: project-shutter-right 540ms ease-in-out both; animation-delay: calc(var(--glyph-index) * 24ms); }
 .project-card.is-shutter-active .project-card__glyph-middle { animation: project-shutter-left 540ms ease-in-out both; animation-delay: calc(var(--glyph-index) * 24ms + 70ms); }
 .project-card.is-shutter-active .project-card__glyph-bottom { animation: project-shutter-right 540ms ease-in-out both; animation-delay: calc(var(--glyph-index) * 24ms + 140ms); }
+.project-card.is-shutter-active .project-card__glyph-base,
+.project-card.is-shutter-active .project-card__glyph-top,
+.project-card.is-shutter-active .project-card__glyph-middle,
+.project-card.is-shutter-active .project-card__glyph-bottom { will-change: transform, opacity; }
 @keyframes project-title-resolve { from { opacity: .28; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes project-shutter-right { 0% { opacity: 0; transform: translateX(-105%); } 28%, 66% { opacity: 1; } 100% { opacity: 0; transform: translateX(105%); } }
 @keyframes project-shutter-left { 0% { opacity: 0; transform: translateX(105%); } 28%, 66% { opacity: 1; } 100% { opacity: 0; transform: translateX(-105%); } }
@@ -416,9 +420,17 @@ h1, h2, h3, p { text-wrap: pretty; }
 .radial-viewport { position: relative; width: 100%; height: min(720px, 82svh); overflow: hidden; mask-image: linear-gradient(to top, transparent 0%, black 18%, black 100%); }
 .radial-wheel { --card-height: 336px; --card-half-height: 168px; --card-width: 252px; --card-half-width: 126px; --orbit-radius: clamp(250px, 24vw, 300px); position: absolute; top: calc(var(--orbit-radius) + var(--card-half-height) + clamp(68px, 10svh, 92px)); left: 50%; width: 0; height: 0; margin: 0; padding: 0; list-style: none; }
 .radial-wheel::before { content: ""; position: absolute; width: calc(var(--orbit-radius) + var(--orbit-radius)); aspect-ratio: 1; border: 1px solid rgba(56, 189, 248, .14); border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 60px rgba(14, 165, 233, .05); }
-.radial-wheel__item { position: absolute; top: 0; left: 0; width: var(--card-width); height: var(--card-height); margin: calc(0px - var(--orbit-radius) - var(--card-half-height)) 0 0 calc(0px - var(--card-half-width)); opacity: 0; pointer-events: none; transform: rotate(var(--orbit-angle)); transform-origin: 50% calc(var(--orbit-radius) + var(--card-half-height)); will-change: transform, opacity; }
+.radial-wheel__item { position: absolute; top: 0; left: 0; width: var(--card-width); height: var(--card-height); margin: calc(0px - var(--orbit-radius) - var(--card-half-height)) 0 0 calc(0px - var(--card-half-width)); opacity: 0; pointer-events: none; transform: rotate(var(--orbit-angle)); transform-origin: 50% calc(var(--orbit-radius) + var(--card-half-height)); }
 .radial-wheel__item.is-active { z-index: 2; opacity: 1; pointer-events: auto; }
-.radial-wheel__item .project-card { display: block; width: 100%; height: 100%; min-height: 0; transform: rotate(var(--orbit-card-angle)); transform-origin: center; will-change: transform; }
+.radial-wheel__item .project-card { display: block; width: 100%; height: 100%; min-height: 0; transform: rotate(var(--orbit-card-angle)); transform-origin: center; }
+.radial-stage.is-animating .radial-wheel__item { will-change: transform, opacity; }
+.radial-stage.is-animating .project-card { will-change: transform; }
+:where(.radial-stage.is-static) { display: block; min-height: auto; overflow: visible; }
+:where(.radial-stage.is-static) .radial-viewport { height: auto; overflow: visible; mask-image: none; }
+:where(.radial-stage.is-static) .radial-wheel { position: static; display: grid; width: 100%; height: auto; grid-template-columns: repeat(auto-fit, minmax(min(100%, 252px), 1fr)); gap: 14px; }
+:where(.radial-stage.is-static) .radial-wheel::before { display: none; }
+:where(.radial-stage.is-static) .radial-wheel__item { position: static; width: 100%; height: auto; margin: 0; opacity: 1; transform: none !important; }
+:where(.radial-stage.is-static) .radial-wheel__item .project-card { min-height: 330px; transform: none !important; }
 
 /* Project case showcase */
 .project-showcase { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 22px; align-items: start; }

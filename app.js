@@ -559,6 +559,18 @@
     let revealObserver = null;
     let resizeFrame = 0;
     let disposed = false;
+    const shutterTokens = new WeakMap();
+    const scheduleShutterCleanup = (card) => {
+      const token = (shutterTokens.get(card) || 0) + 1;
+      shutterTokens.set(card, token);
+      requestAnimationFrame(() => {
+        const animations = card.getAnimations({ subtree: true });
+        if (!animations.length) return;
+        Promise.allSettled(animations.map((animation) => animation.finished)).then(() => {
+          if (shutterTokens.get(card) === token) card.classList.remove('is-shutter-active');
+        });
+      });
+    };
     const activateCard = (index, replay = false, exclusive = true, reveal = true) => {
       activeIndex = index;
       cards.forEach((card, cardIndex) => {
@@ -585,9 +597,13 @@
       }
       if (replay && activeCard.classList.contains('is-shutter-active')) {
         activeCard.classList.remove('is-shutter-active');
-        requestAnimationFrame(() => activeCard.classList.add('is-shutter-active'));
+        requestAnimationFrame(() => {
+          activeCard.classList.add('is-shutter-active');
+          scheduleShutterCleanup(activeCard);
+        });
       } else {
         activeCard.classList.add('is-shutter-active');
+        scheduleShutterCleanup(activeCard);
       }
     };
     const stopAnimation = () => {
@@ -595,10 +611,10 @@
       revealObserver = null;
       context?.revert();
       context = null;
+      stage.classList.remove('is-animating');
     };
     const startAnimation = () => {
       activateCard(0, false, true, false);
-      if (!window.gsap || !window.ScrollTrigger) return;
       revealObserver = new IntersectionObserver(([entry], observer) => {
         if (!entry.isIntersecting) return;
         activateCard(activeIndex, true);
@@ -622,8 +638,8 @@
         };
         items.forEach((item, index) => {
           const angle = index * step;
-          window.gsap.set(item, { rotation: angle });
-          window.gsap.set(cards[index], { rotation: -angle });
+            window.gsap.set(item, { rotation: angle });
+            window.gsap.set(cards[index], { rotation: -angle });
         });
         updateGallery(0);
         const timeline = window.gsap.timeline({
@@ -634,10 +650,11 @@
             end: () => `+=${Math.max(1500, items.length * Math.min(window.innerHeight * .72, 620))}`,
             scrub: .65,
             anticipatePin: 1,
-            invalidateOnRefresh: true,
-            onEnter: () => activateCard(activeIndex, true),
-            onEnterBack: () => activateCard(activeIndex, true),
-          },
+              invalidateOnRefresh: true,
+              onEnter: () => activateCard(activeIndex, true),
+              onEnterBack: () => activateCard(activeIndex, true),
+              onToggle: (self) => stage.classList.toggle('is-animating', self.isActive),
+            },
           onUpdate() {
             updateGallery(this.progress());
           },
@@ -650,7 +667,10 @@
     };
     const syncMode = () => {
       if (disposed) return;
-      const staticGallery = reducedMotionQuery.matches || (window.innerHeight < 600 && window.innerWidth > window.innerHeight);
+      const staticGallery = reducedMotionQuery.matches
+        || (window.innerHeight < 600 && window.innerWidth > window.innerHeight)
+        || !window.gsap
+        || !window.ScrollTrigger;
       const nextMode = staticGallery ? 'static' : 'animated';
       if (mode === nextMode) {
         if (!staticGallery) window.ScrollTrigger?.refresh();
@@ -658,7 +678,8 @@
       }
       stopAnimation();
       mode = nextMode;
-      if (staticGallery) activateCard(0, false, false);
+      stage.classList.toggle('is-static', staticGallery);
+      if (staticGallery) activateCard(0, false, false, false);
       else startAnimation();
     };
     const scheduleSync = () => {
@@ -673,6 +694,7 @@
       window.removeEventListener('resize', scheduleSync);
       reducedMotionQuery.removeEventListener('change', scheduleSync);
       stopAnimation();
+      stage.classList.remove('is-static');
     };
     syncMode();
   }
@@ -936,7 +958,7 @@
       } catch (_) { /* Local preview and API failures use the JSON fallback. */ }
       state.content = content;
       renderStack(content.outcomes || content.stack);
-      renderProjectShowcase(normalizeProjects(projects).filter((project) => project.published !== false));
+      renderProjects(normalizeProjects(projects).filter((project) => project.published !== false));
       renderPricing(content);
       setupScrollReveals();
     } catch (_) {

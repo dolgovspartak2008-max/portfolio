@@ -53,13 +53,25 @@ const { chromium } = require('playwright');
 
     await page.locator('#stack-list .outcome-item').first().waitFor();
     assert.equal(await page.locator('#stack-list .outcome-item').count(), 5);
-    assert.equal(await page.locator('.project-tab').count(), 5);
-    assert.equal(await page.locator('.case-detail dt').count(), 3);
-    const preview = page.locator('.project-preview img');
-    await preview.scrollIntoViewIfNeeded();
-    await page.waitForFunction(() => document.querySelector('.project-preview img')?.naturalWidth > 0);
-    assert.match(await preview.evaluate((image) => image.currentSrc), /assets\/projects\/previews\/pulse-desktop\.(?:avif|webp)$/);
-    assert.equal(await preview.getAttribute('loading'), 'lazy');
+    assert.equal(await page.locator('.project-card').count(), 5);
+    assert.equal(await page.locator('.radial-wheel__item').count(), 5);
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('.project-card__visual img')).every((image) => image.naturalWidth > 0));
+    const staticGallery = viewport.height < 600 && viewport.width > viewport.height;
+    assert.equal(await page.locator('.radial-stage').evaluate((element) => element.classList.contains('is-static')), staticGallery);
+    assert.equal(await page.locator('.pin-spacer').count(), staticGallery ? 0 : 1);
+    if (staticGallery) {
+      assert.deepEqual(await page.locator('.radial-wheel__item').evaluateAll((items) => ({
+        accessible: items.every((item) => !item.inert && !item.hasAttribute('aria-hidden')),
+        visible: items.every((item) => getComputedStyle(item).opacity === '1'),
+      })), { accessible: true, visible: true });
+    } else {
+      await page.locator('.radial-stage').scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => document.querySelector('.project-card.is-shutter-active'));
+      assert.deepEqual(await page.locator('.radial-wheel__item').evaluateAll((items) => ({
+        active: items.filter((item) => item.classList.contains('is-active') && !item.inert).length,
+        inactive: items.filter((item) => !item.classList.contains('is-active') && item.inert).length,
+      })), { active: 1, inactive: 4 });
+    }
 
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
     await page.locator('.extras-disclosure summary').click();
@@ -119,8 +131,9 @@ const { chromium } = require('playwright');
   await fallbackPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
   await fallbackPage.evaluate(() => sessionStorage.setItem('spartak-intro-v2-seen', '1'));
   await fallbackPage.reload({ waitUntil: 'networkidle' });
-  await fallbackPage.locator('.project-showcase').waitFor();
-  assert.equal(await fallbackPage.locator('.project-tab').count(), 5);
+  await fallbackPage.locator('.radial-stage').waitFor();
+  assert.equal(await fallbackPage.locator('.project-card').count(), 5);
+  assert.equal(await fallbackPage.locator('.radial-wheel__item').count(), 5);
   await fallbackPage.close();
 
   await browser.close();

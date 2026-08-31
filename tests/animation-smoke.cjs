@@ -41,26 +41,80 @@ const { chromium } = require('playwright');
   await reducedPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
   assert.equal(await reducedPage.locator('#intro').evaluate((element) => element.classList.contains('is-done')), true);
   assert.equal(await reducedPage.locator('#name-decode').textContent(), 'СПАРТАК');
-  await reducedPage.locator('.project-showcase').scrollIntoViewIfNeeded();
-  await reducedPage.getByRole('button', { name: 'Мобильная версия' }).click();
-  assert.equal(await reducedPage.locator('.project-preview').getAttribute('data-device'), 'mobile');
-  assert.ok(await reducedPage.locator('.project-preview').evaluate((element) => (
-    parseFloat(getComputedStyle(element).transitionDuration) <= .001
-  )));
+  await reducedPage.locator('.radial-wheel').waitFor();
+  assert.deepEqual(await reducedPage.locator('.radial-wheel__item').evaluateAll((items) => ({
+    accessible: items.every((item) => !item.inert && !item.hasAttribute('aria-hidden')),
+    staticLayout: items.every((item) => getComputedStyle(item).position === 'static'),
+  })), { accessible: true, staticLayout: true });
+  assert.equal(await reducedPage.locator('.pin-spacer').count(), 0);
 
   const motionPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await motionPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
   await motionPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
   await motionPage.evaluate(() => sessionStorage.setItem('spartak-intro-v2-seen', '1'));
   await motionPage.reload({ waitUntil: 'networkidle' });
-  await motionPage.locator('.project-showcase').scrollIntoViewIfNeeded();
-  await motionPage.getByRole('button', { name: 'Мобильная версия' }).click();
-  assert.equal(await motionPage.locator('.project-preview').getAttribute('data-device'), 'mobile');
+  await motionPage.locator('.radial-stage').scrollIntoViewIfNeeded();
+  await motionPage.waitForFunction(() => document.querySelector('.project-card.is-shutter-active'));
+  assert.equal(await motionPage.locator('.pin-spacer').count(), 1);
+  await motionPage.evaluate(() => {
+    const trigger = window.ScrollTrigger.getAll().find((item) => item.pin?.classList.contains('radial-stage'));
+    window.scrollTo({ top: trigger.start + 1, behavior: 'instant' });
+    window.ScrollTrigger.update();
+  });
+  await motionPage.waitForFunction(() => document.querySelector('.radial-stage.is-animating'));
+  assert.equal(await motionPage.locator('.radial-stage').evaluate((element) => element.classList.contains('is-animating')), true);
+  const titleAnimationNames = await motionPage.locator('.project-card.is-shutter-active').evaluate((element) => (
+    element.querySelector('.project-card__glyph').getAnimations({ subtree: true }).map((animation) => animation.animationName)
+  ));
+  assert.ok(titleAnimationNames.includes('project-shutter-right'));
+  assert.ok(titleAnimationNames.includes('project-shutter-left'));
+
+  await motionPage.evaluate(async () => {
+    const trigger = window.ScrollTrigger.getAll().find((item) => item.pin?.classList.contains('radial-stage'));
+    trigger.animation.progress(.08);
+    await new Promise(requestAnimationFrame);
+    trigger.animation.progress(.01);
+  });
+  await motionPage.waitForTimeout(1300);
+  const galleryClient = await motionPage.context().newCDPSession(motionPage);
+  const galleryEvents = [];
+  galleryClient.on('Tracing.dataCollected', ({ value }) => galleryEvents.push(...value));
+  const galleryTraceDone = new Promise((resolve) => galleryClient.once('Tracing.tracingComplete', resolve));
+  await galleryClient.send('Tracing.start', { categories: 'devtools.timeline', options: 'record-as-much-as-possible' });
+  await motionPage.evaluate(async () => {
+    const trigger = window.ScrollTrigger.getAll().find((item) => item.pin?.classList.contains('radial-stage'));
+    for (let frame = 2; frame <= 24; frame += 1) {
+      trigger.animation.progress(frame / 300);
+      await new Promise(requestAnimationFrame);
+    }
+  });
+  await galleryClient.send('Tracing.end');
+  await galleryTraceDone;
+  const galleryTraceStart = Math.min(...galleryEvents.map((event) => event.ts || Infinity));
+  const galleryRenderEvents = galleryEvents.filter((event) => event.ts - galleryTraceStart > 100000);
+  const galleryLayouts = galleryRenderEvents.filter((event) => event.name === 'Layout').length;
+  const galleryPaints = galleryRenderEvents.filter((event) => event.name === 'Paint').length;
+  assert.equal(galleryLayouts, 0, `radial gallery caused ${galleryLayouts} layout events`);
+  assert.ok(galleryPaints <= 6, `radial gallery repainted on ${galleryPaints} frames`);
 
   if (process.env.CAPTURE_DIR) {
-    await motionPage.locator('.project-showcase').screenshot({ path: path.join(process.env.CAPTURE_DIR, 'project-showcase-mobile.png') });
+    await motionPage.locator('.radial-viewport').screenshot({ path: path.join(process.env.CAPTURE_DIR, 'gallery-mobile.png') });
     await reducedPage.screenshot({ path: path.join(process.env.CAPTURE_DIR, 'intro-reduced.png') });
   }
+
+  const fallbackPage = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await fallbackPage.route('**/vendor/gsap.min.js', (route) => route.abort());
+  await fallbackPage.route('**/vendor/ScrollTrigger.min.js', (route) => route.abort());
+  await fallbackPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  await fallbackPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+  await fallbackPage.evaluate(() => sessionStorage.setItem('spartak-intro-v2-seen', '1'));
+  await fallbackPage.reload({ waitUntil: 'networkidle' });
+  await fallbackPage.locator('.radial-wheel').waitFor();
+  assert.equal(await fallbackPage.locator('.pin-spacer').count(), 0);
+  assert.deepEqual(await fallbackPage.locator('.radial-wheel__item').evaluateAll((items) => ({
+    accessible: items.every((item) => !item.inert && !item.hasAttribute('aria-hidden')),
+    visible: items.every((item) => getComputedStyle(item).opacity === '1'),
+  })), { accessible: true, visible: true });
 
   await motionPage.evaluate(() => {
     document.documentElement.style.scrollBehavior = 'auto';
@@ -89,9 +143,10 @@ const { chromium } = require('playwright');
   await interruptedPage.close();
   await reducedPage.close();
   await motionPage.close();
+  await fallbackPage.close();
   await browser.close();
   assert.deepEqual(errors, []);
-  console.log('animation smoke: intro + showcase + reduced motion passed');
+  console.log('animation smoke: intro + radial gallery + reduced motion passed');
 })().catch((error) => {
   console.error(error);
   process.exit(1);
