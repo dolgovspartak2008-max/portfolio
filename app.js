@@ -41,6 +41,7 @@
   });
 
   const buildProjectImageUrl = (imageUrl, origin = '') => {
+    if (!imageUrl) return '';
     try {
       const parsed = new URL(imageUrl, origin || undefined);
       if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return '';
@@ -494,18 +495,35 @@
         card.target = '_blank';
         card.rel = 'noopener noreferrer';
       }
+      const windowBar = document.createElement('div');
+      windowBar.className = 'project-card__window';
+      const dots = document.createElement('span');
+      dots.className = 'project-card__dots';
+      dots.setAttribute('aria-hidden', 'true');
+      windowBar.append(dots);
       const visual = document.createElement('div');
       visual.className = 'project-card__visual';
-      visual.setAttribute('aria-hidden', 'true');
+      const placeholder = document.createElement('span');
+      placeholder.className = 'project-card__placeholder';
+      placeholder.textContent = 'Обложка скоро появится';
+      visual.append(placeholder);
       const imageUrl = buildProjectImageUrl(project.imageUrl, location.origin);
       if (imageUrl) {
         const image = document.createElement('img');
         image.src = imageUrl;
-        image.alt = '';
+        image.alt = `Обложка проекта «${project.title}»`;
         image.loading = 'eager';
         image.decoding = 'async';
         image.fetchPriority = index === 0 ? 'high' : 'auto';
-        image.addEventListener('error', () => image.remove(), { once: true });
+        image.addEventListener('load', () => { placeholder.hidden = true; });
+        image.addEventListener('error', () => {
+          const fallback = buildProjectImageUrl(legacyProjectImages.get(String(project.id)), location.origin);
+          if (fallback && image.src !== fallback) image.src = fallback;
+          else {
+            image.remove();
+            placeholder.hidden = false;
+          }
+        });
         visual.append(image);
       }
       const category = document.createElement('small');
@@ -539,8 +557,26 @@
       });
       const info = document.createElement('div');
       info.className = 'project-card__info';
-      info.append(category, title);
-      card.append(visual, info);
+      const footer = document.createElement('div');
+      footer.className = 'project-card__footer';
+      const count = document.createElement('span');
+      count.className = 'project-card__count';
+      count.textContent = `${String(index + 1).padStart(2, '0')} / ${String(projects.length).padStart(2, '0')}`;
+      const action = document.createElement('span');
+      action.className = 'project-card__action';
+      action.textContent = safeUrl ? 'Открыть сайт' : 'Скоро';
+      if (safeUrl) {
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        arrow.setAttribute('viewBox', '0 0 24 24');
+        arrow.setAttribute('fill', 'none');
+        arrow.setAttribute('aria-hidden', 'true');
+        arrow.innerHTML = '<path d="M6 18 18 6M6 6h12v12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />';
+        action.append(arrow);
+        card.setAttribute('aria-label', `${project.title} — открыть сайт в новой вкладке`);
+      }
+      footer.append(count, action);
+      info.append(category, title, footer);
+      card.append(windowBar, visual, info);
       item.append(card);
       wheel.append(item);
     });
@@ -700,18 +736,83 @@
   }
 
   function setupScrollReveals() {
-    if (!window.gsap || !window.ScrollTrigger || reducedMotionQuery.matches) return;
+    if (!window.gsap || !window.ScrollTrigger) return;
     if (state.scrollContext) state.scrollContext.revert();
-    state.scrollContext = window.gsap.context(() => {
-      window.ScrollTrigger.batch('.proof-strip, .section-heading, .stack-grid, .project-showcase, .process-list, .pricing-layout, .final-cta', {
+    state.scrollContext = window.gsap.matchMedia();
+    state.scrollContext.add('(prefers-reduced-motion: no-preference)', () => {
+      window.ScrollTrigger.batch('.proof-strip, .section-heading, .stack-grid, .project-showcase, .pricing-layout, .final-cta', {
         start: 'top 86%',
         once: true,
         onEnter: (elements) => window.gsap.fromTo(elements,
           { autoAlpha: 0, y: 34 },
-          { autoAlpha: 1, y: 0, duration: .72, stagger: .09, ease: 'power3.out', clearProps: 'transform' }),
+          { autoAlpha: 1, y: 0, duration: .72, stagger: .09, ease: 'power3.out', clearProps: 'transform,opacity,visibility' }),
       });
-    }, document.body);
+      const process = document.querySelector('.process-list');
+      process?.classList.add('has-motion');
+      window.ScrollTrigger.batch('.process-list li', {
+        start: 'top 88%',
+        once: true,
+        onEnter: (elements) => {
+          elements.forEach((element, index) => {
+            element.style.setProperty('--step-delay', `${index * 100}ms`);
+            element.classList.add('is-revealed');
+          });
+          window.gsap.fromTo(elements,
+            { opacity: .35, y: 18 },
+            { opacity: 1, y: 0, duration: .55, stagger: .1, ease: 'power3.out', clearProps: 'transform,opacity' });
+        },
+      });
+      return () => process?.classList.remove('has-motion');
+    });
     window.ScrollTrigger.refresh();
+  }
+
+  function setupSurfaceMotion() {
+    const surfaces = Array.from(document.querySelectorAll('.hero__grid, .final-cta'));
+    const visible = new Set();
+    const sync = () => surfaces.forEach((surface) => {
+      surface.classList.toggle('is-motion-active', visible.has(surface) && !document.hidden && !reducedMotionQuery.matches);
+    });
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(({ target, isIntersecting }) => {
+        if (isIntersecting) visible.add(target);
+        else visible.delete(target);
+      });
+      sync();
+    });
+    surfaces.forEach((surface) => observer.observe(surface));
+    document.addEventListener('visibilitychange', sync);
+    reducedMotionQuery.addEventListener('change', sync);
+
+    const card = document.querySelector('.base-package');
+    if (!card) return;
+    const pointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+    let frame = 0;
+    let pointerX = 0;
+    let pointerY = 0;
+    const reset = () => {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      card.classList.remove('is-lit');
+    };
+    card.addEventListener('pointermove', (event) => {
+      if (!pointerQuery.matches || reducedMotionQuery.matches || event.pointerType === 'touch') return;
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const bounds = card.getBoundingClientRect();
+        card.style.setProperty('--light-x', `${pointerX - bounds.left}px`);
+        card.style.setProperty('--light-y', `${pointerY - bounds.top}px`);
+        card.classList.add('is-lit');
+      });
+    }, { passive: true });
+    card.addEventListener('pointerleave', reset);
+    window.addEventListener('scroll', reset, { passive: true });
+    document.addEventListener('visibilitychange', reset);
+    pointerQuery.addEventListener('change', reset);
+    reducedMotionQuery.addEventListener('change', reset);
   }
 
   function renderPricing(content) {
@@ -948,9 +1049,9 @@
         const projectsResponse = await fetch('/api/projects', { cache: 'no-store' });
         if (!projectsResponse.ok) throw new Error(`Projects request failed: ${projectsResponse.status}`);
         const apiProjects = await projectsResponse.json();
-        if (Array.isArray(apiProjects) && apiProjects.length) {
+        if (Array.isArray(apiProjects)) {
           const localProjects = new Map(content.projects.map((project) => [String(project.id), project]));
-          projects = apiProjects.map((project) => ({
+          projects = normalizeProjects(apiProjects).map((project) => ({
             ...localProjects.get(String(project.id)),
             ...project,
           }));
@@ -974,6 +1075,7 @@
     setText('#year', new Date().getFullYear());
     runIntro();
     setupNavigation();
+    setupSurfaceMotion();
     setupFlowField();
     loadContent();
   });

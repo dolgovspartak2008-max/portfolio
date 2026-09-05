@@ -135,6 +135,15 @@
         "desktop": { "avif": "./assets/projects/previews/precision-auto-desktop.avif", "webp": "./assets/projects/previews/precision-auto-desktop.webp" },
         "mobile": { "avif": "./assets/projects/previews/precision-auto-mobile.avif", "webp": "./assets/projects/previews/precision-auto-mobile.webp" }
       }
+    },
+    {
+      "id": 9,
+      "title": "ASIA TRADE CAR",
+      "category": "Импорт автомобилей",
+      "liveUrl": "https://www.asiatradecar.ru/",
+      "imageUrl": "./assets/projects/asia-trade-car.webp",
+      "sortOrder": 6,
+      "published": true
     }
   ],
   "pricing": {

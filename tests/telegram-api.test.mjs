@@ -265,3 +265,42 @@ test('lists projects for configured admin and replies through Telegram', async (
     assert.match(JSON.parse(calls[1].options.body).text, /3 · опубликован · Работа/);
   } finally { restore(); }
 });
+
+for (const scenario of [
+  { name: 'accepts an image sent as a document', document: { file_id: 'file', file_unique_id: 'unique', mime_type: 'image/png', file_name: 'cover.png', file_size: 1024 }, expected: /Обложка ID 3 обновлена/, upload: true },
+  { name: 'explains a private storage bucket without saving a broken URL', privateBucket: true, expected: /portfolio.*публичн/, upload: false },
+  { name: 'keeps the previous image when upload fails', uploadFailure: true, expected: /Storage upload: 500/, upload: true },
+  { name: 'explains the caption for a photo without a command', noCaption: true, expected: /\/image ID/, upload: false },
+  { name: 'rejects oversized files before downloading', document: { file_id: 'file', mime_type: 'image/png', file_size: 11 * 1024 * 1024 }, expected: /10 МБ/, upload: false },
+]) {
+  test(scenario.name, async () => {
+    Object.assign(process.env, { TELEGRAM_BOT_TOKEN: 'bot-token', TELEGRAM_ADMIN_ID: '42', TELEGRAM_WEBHOOK_SECRET: 'secret', SUPABASE_URL: 'https://demo.supabase.co', SUPABASE_SECRET_KEY: 'sb_secret_test' });
+    const calls = [];
+    globalThis.fetch = async (url, options = {}) => {
+      calls.push({ url: String(url), options });
+      if (String(url).includes('/getFile?')) return Response.json({ ok: true, result: { file_path: scenario.document ? 'documents/cover.png' : 'photos/cover.jpg' } });
+      if (String(url).includes('/file/bot')) return new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': scenario.document ? 'image/png' : 'image/jpeg' } });
+      if (String(url).endsWith('/bucket/portfolio')) return Response.json({ id: 'portfolio', public: !scenario.privateBucket });
+      if (String(url).includes('/object/portfolio/')) return Response.json({}, { status: scenario.uploadFailure ? 500 : 200 });
+      if (String(url).includes('/rest/v1/projects')) return Response.json([{ id: 3 }]);
+      return Response.json({ ok: true });
+    };
+    try {
+      const response = await telegramApi.fetch(new Request('https://site.test/api/telegram', {
+        method: 'POST', headers: { 'content-type': 'application/json', 'x-telegram-bot-api-secret-token': 'secret' },
+        body: JSON.stringify({ update_id: 123, message: { chat: { id: 42 }, from: { id: 42 }, ...(scenario.noCaption ? {} : { caption: '/image 3' }), ...(scenario.document ? { document: scenario.document } : { photo: [{ file_id: 'file', file_unique_id: 'unique' }] }) } }),
+      }));
+      assert.equal(response.status, 200);
+      const reply = calls.findLast((call) => call.url.endsWith('/sendMessage'));
+      assert.ok(reply, 'The bot must explain the result');
+      assert.match(JSON.parse(reply.options.body).text, scenario.expected);
+      const upload = calls.find((call) => call.url.includes('/object/portfolio/'));
+      assert.equal(Boolean(upload), scenario.upload);
+      const update = calls.find((call) => call.options.method === 'PATCH');
+      if (scenario.document && scenario.upload) {
+        assert.equal(upload.options.headers['Content-Type'], 'image/png');
+        assert.match(JSON.parse(update.options.body).image_url, /\/public\/portfolio\/projects\/3-123-unique\.png$/);
+      } else assert.equal(update, undefined, 'A failed upload must preserve the current cover');
+    } finally { restore(); }
+  });
+}

@@ -9,6 +9,8 @@ const {
 } = require('../app.js');
 
 assert.equal(typeof applyPointerForce, 'function');
+assert.equal(buildProjectImageUrl('', 'https://portfolio.test'), '');
+assert.equal(buildProjectImageUrl(null, 'https://portfolio.test'), '');
 assert.equal(
   buildProjectImageUrl('https://s6.iimage.su/s/11/cover.jpg', 'https://portfolio.test'),
   '/api/project-image?url=https%3A%2F%2Fs6.iimage.su%2Fs%2F11%2Fcover.jpg',

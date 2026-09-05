@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
 (async () => {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-  await page.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  await page.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(require('../content/site.json').projects) }));
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
@@ -25,7 +25,7 @@ const { chromium } = require('playwright');
   assert.ok(await page.locator('.intro__line').evaluate((element) => Number(getComputedStyle(element).opacity) > 0));
 
   const interruptedPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  await interruptedPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  await interruptedPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(require('../content/site.json').projects) }));
   await interruptedPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
   await interruptedPage.waitForFunction(() => window.__ready === true);
   await interruptedPage.evaluate(() => { window.__introTimeline.pause(1.48); });
@@ -37,7 +37,7 @@ const { chromium } = require('playwright');
   })), { done: true, bodyLocked: false, htmlPending: false });
 
   const reducedPage = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
-  await reducedPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  await reducedPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(require('../content/site.json').projects) }));
   await reducedPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
   assert.equal(await reducedPage.locator('#intro').evaluate((element) => element.classList.contains('is-done')), true);
   assert.equal(await reducedPage.locator('#name-decode').textContent(), 'СПАРТАК');
@@ -49,7 +49,7 @@ const { chromium } = require('playwright');
   assert.equal(await reducedPage.locator('.pin-spacer').count(), 0);
 
   const motionPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  await motionPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  await motionPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(require('../content/site.json').projects) }));
   await motionPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
   await motionPage.evaluate(() => sessionStorage.setItem('spartak-intro-v2-seen', '1'));
   await motionPage.reload({ waitUntil: 'networkidle' });
@@ -71,8 +71,11 @@ const { chromium } = require('playwright');
 
   await motionPage.evaluate(async () => {
     const trigger = window.ScrollTrigger.getAll().find((item) => item.pin?.classList.contains('radial-stage'));
-    trigger.animation.progress(.08);
-    await new Promise(requestAnimationFrame);
+    // Warm each angle before measuring recurring paint, not first-time rasterization.
+    for (let frame = 2; frame <= 24; frame += 1) {
+      trigger.animation.progress(frame / 300);
+      await new Promise(requestAnimationFrame);
+    }
     trigger.animation.progress(.01);
   });
   await motionPage.waitForTimeout(1300);
@@ -105,7 +108,7 @@ const { chromium } = require('playwright');
   const fallbackPage = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await fallbackPage.route('**/vendor/gsap.min.js', (route) => route.abort());
   await fallbackPage.route('**/vendor/ScrollTrigger.min.js', (route) => route.abort());
-  await fallbackPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  await fallbackPage.route('**/api/projects', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(require('../content/site.json').projects) }));
   await fallbackPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
   await fallbackPage.evaluate(() => sessionStorage.setItem('spartak-intro-v2-seen', '1'));
   await fallbackPage.reload({ waitUntil: 'networkidle' });

@@ -4,7 +4,7 @@ const helpText = [
   'Команды:',
   '/list — список работ',
   '/add Название | Категория | https://сайт | https://обложка | порядок',
-  '/image ID — отправить фото с этой подписью и заменить обложку',
+  '/image ID — отправить фото или файл JPG/PNG/WebP до 10 МБ с этой подписью',
   '/publish ID — опубликовать',
   '/hide ID — скрыть',
   '/delete ID CONFIRM — удалить',
@@ -89,7 +89,11 @@ const supabaseRequest = async (config, path, init = {}) => {
 const ensurePortfolioBucket = async (config) => {
   const headers = authorizationHeaders(config);
   const current = await fetch(`${config.supabaseUrl}/storage/v1/bucket/portfolio`, { headers });
-  if (current.ok) return;
+  if (current.ok) {
+    const bucket = await current.json();
+    if (!bucket.public) throw new Error('Supabase Storage: bucket portfolio должен быть публичным, иначе обложки не откроются на сайте.');
+    return;
+  }
   if (current.status !== 404) throw new Error(`Supabase Storage: ${current.status}`);
   const created = await fetch(`${config.supabaseUrl}/storage/v1/bucket`, {
     method: 'POST',
@@ -106,8 +110,15 @@ const ensurePortfolioBucket = async (config) => {
 };
 
 const updateProjectImage = async (config, command, message, updateId) => {
-  const photo = message.photo?.at(-1);
-  if (!photo?.file_id) throw new Error('Отправьте фото с подписью /image ID.');
+  const photo = message.photo?.at(-1) || message.document;
+  if (!photo?.file_id) throw new Error('Отправьте фото или файл JPG/PNG/WebP с подписью /image ID.');
+  const types = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+  const documentType = message.document?.mime_type;
+  if (message.document && !Object.values(types).includes(documentType)) {
+    throw new Error('Поддерживаются файлы JPG, PNG и WebP. Отправьте другой формат как обычное фото.');
+  }
+  const maxSize = 10 * 1024 * 1024;
+  if (photo.file_size > maxSize) throw new Error('Размер изображения должен быть не больше 10 МБ.');
 
   const fileResponse = await fetch(`https://api.telegram.org/bot${config.token}/getFile?file_id=${encodeURIComponent(photo.file_id)}`);
   const fileResult = await fileResponse.json();
@@ -116,11 +127,14 @@ const updateProjectImage = async (config, command, message, updateId) => {
 
   const download = await fetch(`https://api.telegram.org/file/bot${config.token}/${filePath}`);
   if (!download.ok) throw new Error(`Telegram file: ${download.status}`);
-  const extension = filePath.match(/\.(jpe?g|png|webp)$/i)?.[1].toLowerCase().replace('jpeg', 'jpg') || 'jpg';
-  const inferredType = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' }[extension];
+  const extension = Object.keys(types).find((key) => types[key] === documentType)
+    || filePath.match(/\.(jpe?g|png|webp)$/i)?.[1].toLowerCase().replace('jpeg', 'jpg') || 'jpg';
+  const inferredType = types[extension];
   const responseType = download.headers.get('content-type')?.split(';')[0];
   const contentType = ['image/jpeg', 'image/png', 'image/webp'].includes(responseType) ? responseType : inferredType;
 
+  const imageBytes = await download.arrayBuffer();
+  if (imageBytes.byteLength > maxSize) throw new Error('Размер изображения должен быть не больше 10 МБ.');
   await ensurePortfolioBucket(config);
   const uniqueId = String(photo.file_unique_id || photo.file_id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80) || 'image';
   const objectPath = `projects/${command.id}-${Number(updateId) || Date.now()}-${uniqueId}.${extension}`;
@@ -132,7 +146,7 @@ const updateProjectImage = async (config, command, message, updateId) => {
       'x-upsert': 'true',
       'cache-control': '3600',
     },
-    body: await download.arrayBuffer(),
+    body: imageBytes,
   });
   if (!upload.ok) throw new Error(`Supabase Storage upload: ${upload.status}`);
 
@@ -209,7 +223,7 @@ export default {
     try { update = await request.json(); } catch (_) { return json({ error: 'Invalid JSON' }, 400); }
     const message = update?.message;
     if (!message || String(message.from?.id) !== String(config.adminId)) return json({ ok: true });
-    const messageText = message.text || message.caption;
+    const messageText = message.text || message.caption || (message.photo || message.document ? '/help' : '');
     if (!messageText) return json({ ok: true });
 
     try {

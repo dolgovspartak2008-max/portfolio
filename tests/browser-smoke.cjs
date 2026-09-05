@@ -126,14 +126,14 @@ const { chromium } = require('playwright');
   await fallbackPage.route('**/api/projects', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: '[]',
+    body: '{}',
   }));
   await fallbackPage.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
   await fallbackPage.evaluate(() => sessionStorage.setItem('spartak-intro-v2-seen', '1'));
   await fallbackPage.reload({ waitUntil: 'networkidle' });
   await fallbackPage.locator('.radial-stage').waitFor();
-  assert.equal(await fallbackPage.locator('.project-card').count(), 5);
-  assert.equal(await fallbackPage.locator('.radial-wheel__item').count(), 5);
+  assert.equal(await fallbackPage.locator('.project-card').count(), 6);
+  assert.equal(await fallbackPage.locator('.radial-wheel__item').count(), 6);
   await fallbackPage.close();
 
   await browser.close();
