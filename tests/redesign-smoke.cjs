@@ -32,7 +32,7 @@ const { chromium } = require('playwright');
     await page.reload({ waitUntil: 'networkidle' });
 
     assert.equal(await page.locator('#proof-strip').count(), 1);
-    assert.match(await page.locator('#proof-strip').textContent(), /6 живых проектов/);
+    assert.match(await page.locator('#proof-strip').textContent(), /7 живых проектов/);
     assert.equal(await page.locator('#stack-list .outcome-item').count(), 5);
     assert.equal(await page.locator('.project-showcase').count(), 0);
     assert.equal(await page.locator('.radial-stage').count(), 1);

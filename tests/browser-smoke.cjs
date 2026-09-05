@@ -132,8 +132,8 @@ const { chromium } = require('playwright');
   await fallbackPage.evaluate(() => sessionStorage.setItem('spartak-intro-v2-seen', '1'));
   await fallbackPage.reload({ waitUntil: 'networkidle' });
   await fallbackPage.locator('.radial-stage').waitFor();
-  assert.equal(await fallbackPage.locator('.project-card').count(), 6);
-  assert.equal(await fallbackPage.locator('.radial-wheel__item').count(), 6);
+  assert.equal(await fallbackPage.locator('.project-card').count(), 7);
+  assert.equal(await fallbackPage.locator('.radial-wheel__item').count(), 7);
   await fallbackPage.close();
 
   await browser.close();

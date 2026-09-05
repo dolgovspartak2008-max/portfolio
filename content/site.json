@@ -144,6 +144,15 @@
       "imageUrl": "./assets/projects/asia-trade-car.webp",
       "sortOrder": 6,
       "published": true
+    },
+    {
+      "id": 10,
+      "title": "Медвежья поляна",
+      "category": "Гостевые дома на Нугуше",
+      "liveUrl": "https://bear-glade-19uk.vercel.app/",
+      "imageUrl": "./assets/projects/bear-glade.webp",
+      "sortOrder": 7,
+      "published": true
     }
   ],
   "pricing": {

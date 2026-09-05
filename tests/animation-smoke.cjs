@@ -72,8 +72,9 @@ const { chromium } = require('playwright');
   await motionPage.evaluate(async () => {
     const trigger = window.ScrollTrigger.getAll().find((item) => item.pin?.classList.contains('radial-stage'));
     // Warm each angle before measuring recurring paint, not first-time rasterization.
+    const projectCount = document.querySelectorAll('.radial-wheel__item').length;
     for (let frame = 2; frame <= 24; frame += 1) {
-      trigger.animation.progress(frame / 300);
+      trigger.animation.progress(frame / (60 * projectCount));
       await new Promise(requestAnimationFrame);
     }
     trigger.animation.progress(.01);
@@ -86,8 +87,9 @@ const { chromium } = require('playwright');
   await galleryClient.send('Tracing.start', { categories: 'devtools.timeline', options: 'record-as-much-as-possible' });
   await motionPage.evaluate(async () => {
     const trigger = window.ScrollTrigger.getAll().find((item) => item.pin?.classList.contains('radial-stage'));
+    const projectCount = document.querySelectorAll('.radial-wheel__item').length;
     for (let frame = 2; frame <= 24; frame += 1) {
-      trigger.animation.progress(frame / 300);
+      trigger.animation.progress(frame / (60 * projectCount));
       await new Promise(requestAnimationFrame);
     }
   });
