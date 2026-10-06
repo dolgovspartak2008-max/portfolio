@@ -130,6 +130,86 @@
     if (element) element.textContent = value;
   };
 
+  const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function runIntro() {
+    const intro = document.getElementById('intro');
+    if (!intro) return;
+
+    let alreadyShown = false;
+    try { alreadyShown = sessionStorage.getItem('spartak-intro-v2-seen') === '1'; } catch (_) { alreadyShown = false; }
+    const skip = alreadyShown || reducedMotionQuery.matches;
+    const gsap = window.gsap;
+    let finished = false;
+    let finishTimer = 0;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      window.clearTimeout(finishTimer);
+      intro.classList.add('is-done');
+      document.body.classList.remove('intro-active');
+      document.documentElement.classList.remove('intro-pending');
+      window.clearTimeout(window.__introFallback);
+      try { sessionStorage.setItem('spartak-intro-v2-seen', '1'); } catch (_) { /* Storage can be unavailable. */ }
+      revealHero(skip);
+    };
+    finishTimer = window.setTimeout(finish, 3000);
+
+    if (gsap) {
+      const word = intro.querySelector('.intro__word');
+      const mark = intro.querySelector('.intro__mark');
+      const flash = intro.querySelector('.intro__flash');
+      const line = intro.querySelector('.intro__line');
+      const leftPanel = intro.querySelector('.intro__panel--left');
+      const rightPanel = intro.querySelector('.intro__panel--right');
+      const timeline = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+
+      intro.classList.add('is-gsap');
+      gsap.set(word, { autoAlpha: 0, y: 20 });
+      gsap.set(mark, { rotation: -120, scale: .6 });
+      gsap.set([flash, line], { autoAlpha: 0 });
+      timeline
+        .to(word, { autoAlpha: 1, y: 0, duration: .55 }, 0)
+        .to(mark, { rotation: 360, scale: 1, duration: .82, ease: 'back.out(1.4)' }, .06)
+        .to(word, { autoAlpha: 0, y: -12, duration: .22, ease: 'power2.in' }, 1.02)
+        .to(flash, { autoAlpha: .72, duration: .07, yoyo: true, repeat: 1, ease: 'none' }, 1.2)
+        .fromTo(line, { autoAlpha: 0, scaleY: 0, scaleX: 1 }, { autoAlpha: 1, scaleY: 1, duration: .22 }, 1.34)
+        .to(line, { scaleX: Math.max(600, window.innerWidth), duration: .32, ease: 'power4.in' }, 1.56)
+        .to(leftPanel, { xPercent: -101, duration: .72, ease: 'power4.inOut' }, 1.68)
+        .to(rightPanel, { xPercent: 101, duration: .72, ease: 'power4.inOut' }, 1.68)
+        .to(line, { autoAlpha: 0, duration: .18 }, 1.76)
+        .call(finish, [], 2.42);
+
+      if (skip) {
+        timeline.progress(1).pause();
+        finish();
+      } else {
+        document.body.classList.add('intro-active');
+        timeline.play(0);
+      }
+      return;
+    }
+
+    if (skip) {
+      finish();
+      return;
+    }
+    document.body.classList.add('intro-active');
+    intro.classList.add('is-running');
+    window.setTimeout(finish, 2700);
+  }
+
+  function revealHero(skip) {
+    if (!window.gsap || skip) return;
+    window.gsap.timeline({ defaults: { duration: .58, ease: 'power3.out' } })
+      .from('.eyebrow', { autoAlpha: 0, y: 18 })
+      .from('.hero h1', { autoAlpha: 0, y: 28 }, '-=.34')
+      .from('.hero__lead', { autoAlpha: 0, y: 22 }, '-=.36')
+      .from('.hero__actions', { autoAlpha: 0, y: 18 }, '-=.38')
+      .from('.hero__meta', { autoAlpha: 0, y: 14 }, '-=.4')
+      .from('.hero__visual', { autoAlpha: 0, x: 36, duration: .8 }, '-=.82');
+  }
+
   const create = (tag, className, text) => {
     const element = document.createElement(tag);
     if (className) element.className = className;
@@ -397,6 +477,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     setText('#year', new Date().getFullYear());
+    runIntro();
     setupNavigation();
     loadContent();
   });

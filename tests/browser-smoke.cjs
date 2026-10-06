@@ -27,6 +27,9 @@ const { chromium } = require('playwright');
     page.on('console', (message) => { if (message.type() === 'error') errors.push(`${viewport.name}: ${message.text()}`); });
     page.on('pageerror', (error) => errors.push(`${viewport.name}: ${error.message}`));
     await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+    assert.equal(await page.evaluate(() => Boolean(window.gsap)), true);
+    await page.waitForFunction(() => document.getElementById('intro').classList.contains('is-done'), null, { timeout: 5000 });
+    assert.equal(await page.evaluate(() => document.documentElement.classList.contains('intro-pending')), false);
 
     const mobileMenu = viewport.width <= 760;
     assert.equal(await page.locator('#site-nav').evaluate((element) => element.inert), mobileMenu);
