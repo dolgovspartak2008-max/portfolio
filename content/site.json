@@ -1,48 +1,28 @@
 {
   "owner": {
     "name": "Спартак",
-    "role": "Разработка лендингов для малого бизнеса",
+    "role": "Сайты, приложения и автоматизация для бизнеса",
     "telegramUsername": "spartlak",
     "telegramChannelUrl": "https://t.me/spartakchokaet"
   },
-  "hero": {
-    "eyebrow": "Привет, я",
-    "titleBeforeAccent": "Создаю лендинги, которые работают на",
-    "titleAccent": "продажи вашего бизнеса.",
-    "description": "Разрабатываю быстрые адаптивные сайты с понятной структурой, современным дизайном и запуском под ключ."
-  },
-  "stack": [
-    { "name": "Next.js", "code": "N" },
-    { "name": "React", "code": "R" },
-    { "name": "JavaScript", "code": "JS" },
-    { "name": "TypeScript", "code": "TS" },
-    { "name": "Tailwind CSS", "code": "TW" },
-    { "name": "shadcn/ui", "code": "UI" },
-    { "name": "Supabase", "code": "SB" },
-    { "name": "Git", "code": "G" },
-    { "name": "GitHub", "code": "GH" },
-    { "name": "Vercel", "code": "V" }
-  ],
-  "outcomes": [
+  "services": [
     {
-      "title": "Понятная структура",
-      "description": "Посетитель быстро понимает предложение, преимущества и следующий шаг."
+      "key": "sites",
+      "title": "Сайты",
+      "description": "Лендинги, сайты компаний, каталоги и интернет-магазины. Адаптивная вёрстка, быстрая загрузка, домен и хостинг.",
+      "items": ["Лендинги под заявки", "Многостраничные сайты", "Каталоги и магазины", "Формы, квизы, калькуляторы"]
     },
     {
-      "title": "Удобно на любом экране",
-      "description": "Макет адаптируется под телефон, планшет и desktop без обрезанного контента."
+      "key": "apps",
+      "title": "Приложения",
+      "description": "Веб-приложения и сервисы под ваши процессы: от личного кабинета клиента до внутренней системы для команды.",
+      "items": ["Веб-приложения и SaaS", "Личные кабинеты и админки", "CRM и учётные системы", "Mini Apps в Telegram"]
     },
     {
-      "title": "Быстрая загрузка",
-      "description": "Лёгкий frontend, оптимизированные изображения и минимум лишнего JavaScript."
-    },
-    {
-      "title": "Заметные CTA",
-      "description": "Кнопки ведут к заявке, записи или бронированию без запутанных сценариев."
-    },
-    {
-      "title": "Готово к запуску",
-      "description": "Домен, хостинг, метаданные и публикация собираются в один понятный процесс."
+      "key": "automation",
+      "title": "Автоматизация",
+      "description": "Беру любую повторяющуюся работу и передаю её программе: заявки, отчёты, таблицы, уведомления, обмен данными между сервисами.",
+      "items": ["Telegram-боты", "Интеграции CRM, таблиц и сервисов", "Парсинг и обработка данных", "Автоотчёты и рассылки"]
     }
   ],
   "projects": [
@@ -54,11 +34,6 @@
       "imageUrl": "./assets/projects/pulse.jpg",
       "sortOrder": 1,
       "published": true,
-      "caseStudy": {
-        "challenge": "Собрать сильный образ клуба и быстро провести посетителя к выбору формата тренировок.",
-        "approach": "Энергичный первый экран, зоны клуба, тренеры, тарифы и встроенный калькулятор.",
-        "outcome": "Понятный путь от знакомства с клубом до расчёта подходящего тарифа."
-      },
       "previews": {
         "desktop": { "avif": "./assets/projects/previews/pulse-desktop.avif", "webp": "./assets/projects/previews/pulse-desktop.webp" },
         "mobile": { "avif": "./assets/projects/previews/pulse-mobile.avif", "webp": "./assets/projects/previews/pulse-mobile.webp" }
@@ -72,11 +47,6 @@
       "imageUrl": "./assets/projects/blue-sea.jpg",
       "sortOrder": 2,
       "published": true,
-      "caseStudy": {
-        "challenge": "Помочь семье быстро понять формат отдыха, условия размещения и перейти к бронированию.",
-        "approach": "Атмосферная подача, варианты домиков, галерея, отзывы, ответы на вопросы и прямой CTA.",
-        "outcome": "Цельный сценарий выбора отдыха без перегруженного каталога и лишних переходов."
-      },
       "previews": {
         "desktop": { "avif": "./assets/projects/previews/blue-sea-desktop.avif", "webp": "./assets/projects/previews/blue-sea-desktop.webp" },
         "mobile": { "avif": "./assets/projects/previews/blue-sea-mobile.avif", "webp": "./assets/projects/previews/blue-sea-mobile.webp" }
@@ -90,11 +60,6 @@
       "imageUrl": "./assets/projects/bravo.jpg",
       "sortOrder": 3,
       "published": true,
-      "caseStudy": {
-        "challenge": "Показать родителям направления, педагогов и атмосферу студии до первого визита.",
-        "approach": "Живая визуальная подача, понятная программа занятий и повторяющиеся точки записи.",
-        "outcome": "Посетитель может познакомиться со студией и записаться на занятие из любого ключевого блока."
-      },
       "previews": {
         "desktop": { "avif": "./assets/projects/previews/bravo-desktop.avif", "webp": "./assets/projects/previews/bravo-desktop.webp" },
         "mobile": { "avif": "./assets/projects/previews/bravo-mobile.avif", "webp": "./assets/projects/previews/bravo-mobile.webp" }
@@ -108,11 +73,6 @@
       "imageUrl": "./assets/projects/steak-house.jpg",
       "sortOrder": 4,
       "published": true,
-      "caseStudy": {
-        "challenge": "Передать характер ресторана и сократить путь от первого впечатления до бронирования стола.",
-        "approach": "Атмосферный hero, акцент на меню и отзывах, заметная кнопка бронирования.",
-        "outcome": "Эмоциональная витрина ресторана с прямым сценарием отправки заявки."
-      },
       "previews": {
         "desktop": { "avif": "./assets/projects/previews/steak-house-desktop.avif", "webp": "./assets/projects/previews/steak-house-desktop.webp" },
         "mobile": { "avif": "./assets/projects/previews/steak-house-mobile.avif", "webp": "./assets/projects/previews/steak-house-mobile.webp" }
@@ -126,11 +86,6 @@
       "imageUrl": "./assets/projects/precision-auto.jpg",
       "sortOrder": 5,
       "published": true,
-      "caseStudy": {
-        "challenge": "Упростить выбор услуги и снять тревогу перед обращением в автосервис.",
-        "approach": "Услуги и цены на первом плане, отзывы как доказательство, запись без длинной формы.",
-        "outcome": "Понятный путь от диагностики проблемы до записи на сервис."
-      },
       "previews": {
         "desktop": { "avif": "./assets/projects/previews/precision-auto-desktop.avif", "webp": "./assets/projects/previews/precision-auto-desktop.webp" },
         "mobile": { "avif": "./assets/projects/previews/precision-auto-mobile.avif", "webp": "./assets/projects/previews/precision-auto-mobile.webp" }
@@ -162,12 +117,12 @@
       "price": 5000,
       "included": [
         "До 6 смысловых секций",
-        "Адаптация под телефон, планшет и desktop",
-        "Структура под задачи малого бизнеса",
-        "Современный дизайн и заметные CTA",
-        "Подключение Telegram для связи",
-        "Базовая оптимизация скорости и metadata",
-        "Одна итерация небольших правок",
+        "Адаптация под телефон, планшет и компьютер",
+        "Структура под задачи бизнеса",
+        "Дизайн и кнопки заявки на видных местах",
+        "Связь через Telegram",
+        "Базовая оптимизация скорости",
+        "Одна итерация правок",
         "Публикация после согласования"
       ]
     },
@@ -175,28 +130,28 @@
       {
         "key": "domain",
         "title": "Подключение домена",
-        "description": "Регистрация и подключение согласованного домена включены.",
+        "description": "Регистрация и подключение согласованного домена.",
         "price": 500,
         "isFrom": false
       },
       {
         "key": "hosting",
         "title": "Подключение хостинга",
-        "description": "Настройка и базовый подходящий тариф включены.",
+        "description": "Настройка и подходящий базовый тариф.",
         "price": 500,
         "isFrom": false
       },
       {
         "key": "animations",
         "title": "Создание анимаций",
-        "description": "Сценарии появления, движения и интерактивные акценты под дизайн.",
+        "description": "Появление блоков, движение и интерактивные элементы под дизайн.",
         "price": 1000,
         "isFrom": true
       },
       {
         "key": "seo",
         "title": "Базовая SEO-проработка",
-        "description": "Структура заголовков, метаданные и подготовка страницы к индексации.",
+        "description": "Заголовки, метаданные и подготовка страницы к индексации.",
         "price": 1000,
         "isFrom": false
       }

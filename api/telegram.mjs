@@ -29,7 +29,7 @@ export const parseCommand = (text) => {
     const [title = '', category = '', live = '', image = '', order = '0'] = body.split('|').map((value) => value.trim());
     const liveUrl = parseUrl(live);
     const imageUrl = parseUrl(image);
-    const sortOrder = Number.parseInt(order, 10);
+    const sortOrder = Number.parseInt(order || '0', 10);
     if (!title || !category || (live && !liveUrl) || (image && !imageUrl) || !Number.isFinite(sortOrder)) return { action: 'help' };
     return { action: 'add', title, category, liveUrl, imageUrl, sortOrder };
   }
@@ -45,11 +45,11 @@ export const parseCommand = (text) => {
 };
 
 const configuration = () => ({
-  token: process.env.TELEGRAM_BOT_TOKEN,
-  adminId: process.env.TELEGRAM_ADMIN_ID,
-  webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET,
-  supabaseUrl: process.env.SUPABASE_URL?.replace(/\/$/, ''),
-  serviceKey: process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
+  token: process.env.TELEGRAM_BOT_TOKEN?.trim(),
+  adminId: process.env.TELEGRAM_ADMIN_ID?.trim(),
+  webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET?.trim(),
+  supabaseUrl: process.env.SUPABASE_URL?.trim().replace(/\/$/, ''),
+  serviceKey: (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)?.trim(),
 });
 
 const configurationStatus = (config) => ({
@@ -59,6 +59,19 @@ const configurationStatus = (config) => ({
   supabaseUrl: Boolean(config.supabaseUrl),
   serviceKey: Boolean(config.serviceKey),
 });
+
+// Telegram rejects setWebhook when secret_token has other characters, and the admin id must be numeric.
+const configurationProblems = (config) => [
+  config.adminId && !/^\d+$/.test(config.adminId)
+    ? 'TELEGRAM_ADMIN_ID должен быть числом (ваш ID, не @username). Узнать ID: написать боту — он ответит.'
+    : '',
+  config.webhookSecret && !/^[A-Za-z0-9_-]{1,256}$/.test(config.webhookSecret)
+    ? 'TELEGRAM_WEBHOOK_SECRET может содержать только латиницу, цифры, _ и -.'
+    : '',
+  config.supabaseUrl && !/^https:\/\/[^/]+\.supabase\.co$/.test(config.supabaseUrl)
+    ? 'SUPABASE_URL должен выглядеть как https://PROJECT_REF.supabase.co без /rest/v1.'
+    : '',
+].filter(Boolean);
 
 const authorizationHeaders = (config) => ({
   apikey: config.serviceKey,
@@ -81,6 +94,9 @@ const supabaseRequest = async (config, path, init = {}) => {
     if (response.status === 404 && error.code === 'PGRST205') {
       throw new Error('Supabase: таблица projects не найдена. Выполните supabase/schema.sql в Supabase SQL Editor.');
     }
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(`Supabase: ${response.status} — проверьте SUPABASE_SECRET_KEY (нужен secret/service_role ключ, а не publishable).`);
+    }
     throw new Error(`Supabase: ${response.status}${error.code ? ` · ${error.code}` : ''}`);
   }
   return response.status === 204 ? [] : response.json();
@@ -94,7 +110,7 @@ const ensurePortfolioBucket = async (config) => {
     if (!bucket.public) throw new Error('Supabase Storage: bucket portfolio должен быть публичным, иначе обложки не откроются на сайте.');
     return;
   }
-  if (current.status !== 404) throw new Error(`Supabase Storage: ${current.status}`);
+  if (current.status !== 404 && current.status !== 400) throw new Error(`Supabase Storage: ${current.status}`);
   const created = await fetch(`${config.supabaseUrl}/storage/v1/bucket`, {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/json' },
@@ -177,7 +193,7 @@ const execute = async (config, command, message, updateId) => {
         published: false,
       }),
     });
-    return `Добавлено: ${project.title} · ID ${project.id} · пока скрыт.`;
+    return `Добавлено: ${project.title} · ID ${project.id} · пока скрыт. Опубликовать: /publish ${project.id}`;
   }
   if (command.action === 'publish' || command.action === 'hide') {
     const published = command.action === 'publish';
@@ -203,14 +219,65 @@ const reply = async (config, chatId, text) => {
   if (!response.ok) throw new Error(`Telegram: ${response.status}`);
 };
 
+const telegramCall = async (config, method, body) => {
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${config.token}/${method}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    });
+    return await response.json();
+  } catch (error) {
+    return { ok: false, description: error.message };
+  }
+};
+
+// GET /api/telegram — диагностика. GET /api/telegram?setup=СЕКРЕТ — регистрирует webhook на этот адрес.
+const status = async (request, config) => {
+  const configured = configurationStatus(config);
+  const problems = configurationProblems(config);
+  const result = { ok: false, configured, problems };
+  if (!config.token) return json(result, 503);
+
+  const endpoint = new URL('/api/telegram', request.url).href;
+  const setup = new URL(request.url).searchParams.get('setup');
+  if (setup) {
+    if (!config.webhookSecret || setup !== config.webhookSecret) return json({ error: 'Unauthorized' }, 401);
+    const registered = await telegramCall(config, 'setWebhook', {
+      url: endpoint,
+      secret_token: config.webhookSecret,
+      allowed_updates: ['message'],
+      drop_pending_updates: true,
+    });
+    result.setup = registered.ok ? 'webhook зарегистрирован' : `Telegram: ${registered.description || 'ошибка'}`;
+  }
+
+  const me = await telegramCall(config, 'getMe');
+  if (!me.ok) {
+    problems.push(`TELEGRAM_BOT_TOKEN не принят Telegram: ${me.description || 'ошибка'}`);
+    return json(result, 503);
+  }
+  result.bot = `@${me.result.username}`;
+  const info = await telegramCall(config, 'getWebhookInfo');
+  const webhook = info.result || {};
+  result.webhook = {
+    url: webhook.url || '',
+    pointsHere: webhook.url === endpoint,
+    pendingUpdates: webhook.pending_update_count || 0,
+    lastError: webhook.last_error_message || '',
+  };
+  if (!webhook.url) problems.push('Webhook не зарегистрирован — откройте /api/telegram?setup=ВАШ_TELEGRAM_WEBHOOK_SECRET.');
+  else if (webhook.url !== endpoint) problems.push(`Webhook указывает на ${webhook.url}, а не на ${endpoint}.`);
+  if (webhook.last_error_message) problems.push(`Последняя ошибка доставки: ${webhook.last_error_message}`);
+
+  result.ok = Object.values(configured).every(Boolean) && !problems.length;
+  return json(result, result.ok ? 200 : 503);
+};
+
 export default {
   async fetch(request) {
     const config = configuration();
-    if (request.method === 'GET') {
-      const configured = configurationStatus(config);
-      const ok = Object.values(configured).every(Boolean);
-      return json({ ok, configured }, ok ? 200 : 503);
-    }
+    if (request.method === 'GET') return status(request, config);
     if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
     if (!config.webhookSecret || request.headers.get('x-telegram-bot-api-secret-token') !== config.webhookSecret) {
       return json({ error: 'Unauthorized' }, 401);
@@ -222,18 +289,28 @@ export default {
     let update;
     try { update = await request.json(); } catch (_) { return json({ error: 'Invalid JSON' }, 400); }
     const message = update?.message;
-    if (!message || String(message.from?.id) !== String(config.adminId)) return json({ ok: true });
-    const messageText = message.text || message.caption || (message.photo || message.document ? '/help' : '');
-    if (!messageText) return json({ ok: true });
+    if (!message?.chat) return json({ ok: true });
 
     try {
-      await reply(config, message.chat.id, await execute(config, parseCommand(messageText), message, update.update_id));
-    } catch (error) {
-      try {
-        await reply(config, message.chat.id, `Ошибка: ${error.message}`);
-      } catch (replyError) {
-        return json({ error: replyError.message }, 502);
+      if (String(message.from?.id) !== String(config.adminId)) {
+        // Раньше бот молча игнорировал чужой ID — из-за этого казалось, что он «не работает».
+        if (message.chat.type === 'private') {
+          await reply(config, message.chat.id, `Нет доступа. Ваш Telegram ID: ${message.from?.id}. Если это вы — укажите его в TELEGRAM_ADMIN_ID на Vercel и сделайте Redeploy.`);
+        }
+        return json({ ok: true });
       }
+      const messageText = message.text || message.caption || (message.photo || message.document ? '/help' : '');
+      if (!messageText) return json({ ok: true });
+      try {
+        await reply(config, message.chat.id, await execute(config, parseCommand(messageText), message, update.update_id));
+      } catch (error) {
+        if (/^Telegram: /.test(error.message)) throw error;
+        await reply(config, message.chat.id, `Ошибка: ${error.message}`);
+      }
+    } catch (error) {
+      // 200, чтобы Telegram не повторял одно и то же сообщение бесконечно; причина видна в логах Vercel.
+      console.error('telegram webhook:', error.message);
+      return json({ ok: false, error: error.message });
     }
     return json({ ok: true });
   },

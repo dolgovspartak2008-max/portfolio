@@ -1,6 +1,6 @@
 # Подключение Supabase
 
-Сайт получает только опубликованные проекты через `/api/projects`. Управление записями выполняется в Supabase Dashboard. Supabase SDK и секретный `service_role` не нужны.
+Сайт получает только опубликованные проекты через `/api/projects`. Управление записями выполняется в Supabase Dashboard или через Telegram-бота. Supabase SDK не нужен.
 
 ## 1. Создать проект Supabase
 
@@ -22,7 +22,7 @@
 - `sort_order` — порядок карточек: меньшее число показывается раньше.
 - `published` — включите, чтобы проект появился на сайте.
 
-Для ручной загрузки обложек используйте созданный в **Storage** публичный bucket `portfolio` и вставляйте **Public URL** в `image_url`. Пустые необязательные поля оставляйте как `NULL`.
+На сайте показываются первые 12 работ, остальные — по кнопке «Показать ещё»; есть поиск по названию и категории. Количество работ не ограничено.
 
 ## 3. Взять параметры подключения
 
@@ -31,26 +31,21 @@
 - URL проекта сохраните как `SUPABASE_URL` — формат `https://PROJECT_REF.supabase.co`.
 - **Publishable key** вида `sb_publishable_...` сохраните как `SUPABASE_PUBLISHABLE_KEY`.
 
-Не используйте `Secret key`, `service_role`, пароль базы или connection string. Они дают лишние права и этому сайту не нужны.
-
 ## 4. Добавить переменные в Vercel
 
-После импорта GitHub-репозитория в Vercel откройте **Project** → **Settings** → **Environment Variables** и добавьте:
+Откройте **Project** → **Settings** → **Environment Variables** и добавьте:
 
 ```text
 SUPABASE_URL=https://PROJECT_REF.supabase.co
 SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
-Отметьте `Production`, `Preview` и `Development`. После сохранения запустите новый deployment: старые deployments новые переменные не получают.
+Отметьте `Production`, `Preview` и `Development`. После сохранения запустите новый deployment (**Redeploy**): старые deployments новые переменные не получают.
 
 ## 5. Проверить
 
 1. Откройте `https://ВАШ-ДОМЕН/api/projects` — должен вернуться JSON-массив опубликованных проектов.
-2. Откройте сайт и проверьте секцию «Портфолио».
-3. Снимите `published` у тестовой записи: после обновления страницы карточка должна исчезнуть.
-
-Если `/api/projects` отвечает `500`, проверьте обе переменные Vercel. Если отвечает `502`, проверьте URL, ключ, выполнение `schema.sql` и RLS policy.
+2. Если `/api/projects` отвечает `500` — проверьте обе переменные Vercel. Если `502` — URL, ключ, выполнение `schema.sql` и RLS policy.
 
 ## Управление работами через Telegram-бота
 
@@ -58,31 +53,27 @@ SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 
 ```text
 TELEGRAM_BOT_TOKEN=токен от BotFather
-TELEGRAM_ADMIN_ID=ваш числовой Telegram ID
-TELEGRAM_WEBHOOK_SECRET=случайная длинная строка
+TELEGRAM_ADMIN_ID=ваш ЧИСЛОВОЙ Telegram ID (не @username)
+TELEGRAM_WEBHOOK_SECRET=длинная строка только из латиницы, цифр, _ и -
 SUPABASE_SECRET_KEY=sb_secret_... ключ Supabase
 ```
 
-`SUPABASE_SECRET_KEY` используется только серверным `/api/telegram` и не попадает в браузер. Старый `SUPABASE_SERVICE_ROLE_KEY` тоже поддерживается. После нового deployment откройте `/api/telegram`: все пять значений `configured` должны быть `true`. Затем зарегистрируйте webhook в PowerShell:
+После **Redeploy**:
 
-```powershell
-$body = @{
-  url = "https://ВАШ-ДОМЕН/api/telegram"
-  secret_token = "ВАШ_TELEGRAM_WEBHOOK_SECRET"
-}
-Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/botВАШ_TELEGRAM_BOT_TOKEN/setWebhook" -Body $body
-```
+1. Откройте `https://ВАШ-ДОМЕН/api/telegram?setup=ВАШ_TELEGRAM_WEBHOOK_SECRET` — бот сам зарегистрирует webhook на этот домен.
+2. Откройте `https://ВАШ-ДОМЕН/api/telegram` — страница покажет, что не так: какие переменные не заданы, принят ли токен, куда смотрит webhook и последнюю ошибку доставки. Если всё в порядке — `"ok": true`.
+3. Напишите боту `/list`. Если ID в `TELEGRAM_ADMIN_ID` не ваш, бот ответит «Нет доступа» и пришлёт ваш настоящий ID.
 
 Команды бота:
 
 ```text
 /list
 /add Название | Категория | https://сайт | https://обложка | порядок
-/image ID
+/image ID   — отправить фото с этой подписью
 /publish ID
 /hide ID
 /delete ID CONFIRM
 ```
 
-Новая работа после `/add` создаётся скрытой. Опубликуйте её отдельной командой `/publish ID`.
-Чтобы заменить обложку, отправьте боту фотографию и укажите в её подписи `/image ID`. Бот загрузит файл в Supabase Storage и обновит ссылку без кеширования старой фотографии.
+Новая работа после `/add` создаётся скрытой. Опубликуйте её командой `/publish ID`.
+Чтобы заменить обложку, отправьте боту фотографию с подписью `/image ID`.
