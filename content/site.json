@@ -108,13 +108,31 @@
       "imageUrl": "./assets/projects/bear-glade.webp",
       "sortOrder": 7,
       "published": true
+    },
+    {
+      "id": 11,
+      "title": "Физиотера",
+      "category": "Клиника реабилитации, Уфа",
+      "liveUrl": "https://fiziotera.online/",
+      "imageUrl": "https://fiziotera.online/assets/img/og.jpg",
+      "sortOrder": 8,
+      "published": true
+    },
+    {
+      "id": 12,
+      "title": "Кабинет доктора Горшечникова",
+      "category": "Центр здоровья, Салават",
+      "liveUrl": "https://drgorshechnikov.ru/",
+      "imageUrl": "https://www.drgorshechnikov.ru/assets/img/og.jpg",
+      "sortOrder": 9,
+      "published": true
     }
   ],
   "pricing": {
     "base": {
       "key": "base",
       "title": "Базовая разработка лендинга",
-      "price": 5000,
+      "price": 9000,
       "included": [
         "До 6 смысловых секций",
         "Адаптация под телефон, планшет и компьютер",

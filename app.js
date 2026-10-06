@@ -351,7 +351,7 @@
 
   function renderPricing(content) {
     const { pricing, owner } = content;
-    setText('#base-price', formatPrice(pricing.base.price));
+    setText('#base-price', `от ${formatPrice(pricing.base.price)}`);
     setText('#calculator-base-price', formatPrice(pricing.base.price));
 
     const includedRoot = document.getElementById('included-list');
@@ -460,10 +460,14 @@
         const apiProjects = await projectsResponse.json();
         if (Array.isArray(apiProjects)) {
           const localProjects = new Map(content.projects.map((project) => [String(project.id), project]));
-          projects = normalizeProjects(apiProjects).map((project) => ({
+          const merged = normalizeProjects(apiProjects).map((project) => ({
             ...localProjects.get(String(project.id)),
             ...project,
           }));
+          const hostOf = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (_) { return ''; } };
+          const known = new Set(merged.flatMap((project) => [String(project.id), hostOf(project.liveUrl)]).filter(Boolean));
+          const localOnly = content.projects.filter((project) => !known.has(String(project.id)) && !known.has(hostOf(project.liveUrl)));
+          projects = [...merged, ...localOnly];
         }
       } catch (_) { /* Local preview and API failures use the JSON fallback. */ }
       renderServices(content.services);
