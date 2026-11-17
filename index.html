@@ -41,6 +41,8 @@
         <div class="vignette"></div>
       </div>
 
+      <div class="gate-tag" id="gate-tag" aria-hidden="true"><span id="gate-tag-num">01</span><strong id="gate-tag-label">Обо мне</strong></div>
+
       <svg class="hud-frame" aria-hidden="true" preserveAspectRatio="none"><path id="hud-frame-path" /></svg>
 
       <header class="topbar">
@@ -62,13 +64,21 @@
 
       <main class="panels" id="panels" tabindex="-1">
         <section class="panel panel--hero" data-panel="0" aria-labelledby="hero-title">
-          <p class="eyebrow">Портфолио</p>
-          <h1 id="hero-title">Сайты, боты и&nbsp;автоматизация для бизнеса</h1>
-          <p class="panel__lead" id="hero-lead">Спартак — разработка сайтов, Telegram-ботов, веб-приложений и CRM. От идеи до запуска.</p>
-          <div class="panel__actions">
-            <button class="button button--primary" type="button" data-go="1">Начать маршрут</button>
-            <button class="button" type="button" data-go="2">Сразу к работам</button>
+          <div class="hero__intro">
+            <p class="eyebrow">Портфолио</p>
+            <h1 id="hero-title">Сайты, боты и&nbsp;автоматизация для бизнеса</h1>
+            <p class="panel__lead" id="hero-lead">Спартак — разработка сайтов, Telegram-ботов, веб-приложений и CRM. От идеи до запуска.</p>
+            <div class="panel__actions">
+              <button class="button button--primary" type="button" data-go="1">Начать маршрут <span aria-hidden="true">→</span></button>
+            </div>
           </div>
+          <p class="route-list__title">Маршрут · 4 точки</p>
+          <ol class="route-list" id="route-list">
+            <li><button type="button" data-go="1"><i class="gate-icon" aria-hidden="true"></i><span class="route-list__num">01</span><span class="route-list__text"><strong>Обо мне</strong><small>Кто я и чем полезен</small></span><span class="route-list__arrow" aria-hidden="true">→</span></button></li>
+            <li><button type="button" data-go="2"><i class="gate-icon" aria-hidden="true"></i><span class="route-list__num">02</span><span class="route-list__text"><strong>Мои работы</strong><small>Готовые проекты</small></span><span class="route-list__arrow" aria-hidden="true">→</span></button></li>
+            <li><button type="button" data-go="3"><i class="gate-icon" aria-hidden="true"></i><span class="route-list__num">03</span><span class="route-list__text"><strong>Прайс</strong><small>Примерная стоимость</small></span><span class="route-list__arrow" aria-hidden="true">→</span></button></li>
+            <li><button type="button" data-go="4"><i class="gate-icon" aria-hidden="true"></i><span class="route-list__num">04</span><span class="route-list__text"><strong>Контакты</strong><small>Написать в Telegram</small></span><span class="route-list__arrow" aria-hidden="true">→</span></button></li>
+          </ol>
         </section>
 
         <section class="panel panel--about" data-panel="1" aria-labelledby="about-title">

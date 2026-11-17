@@ -237,7 +237,38 @@ h1, h2, h3, h4, p { margin: 0; }
 #skip-intro { color: var(--text); border-color: rgba(74, 158, 255, .6); }
 .hud__hint { position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%); font-size: 10px; letter-spacing: .3em; text-transform: uppercase; color: var(--dim); pointer-events: none; animation: hint 2.6s ease-in-out infinite; }
 @keyframes hint { 50% { opacity: .35; transform: translate(-50%, 4px); } }
-.intro-playing .panel--hero { opacity: .0; visibility: hidden; transition: opacity .6s, visibility .6s; }
+
+/* ---------- Маршрут на старте и метка точки ---------- */
+
+.route-list__title { margin-top: 26px; font-size: 10px; letter-spacing: .3em; text-transform: uppercase; color: var(--dim); }
+.route-list { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; counter-reset: none; }
+.route-list li { transition: opacity .6s var(--ease), transform .6s var(--ease); }
+.route-list button { display: grid; grid-template-columns: 22px 24px 1fr auto; align-items: center; gap: 12px; width: 100%; min-height: 54px; padding: 8px 16px 8px 14px; border: 1px solid rgba(255, 255, 255, .08); border-radius: 14px; background: rgba(255, 255, 255, .025); text-align: left; transition: border-color .3s, background .3s, box-shadow .3s; }
+.route-list button:hover, .route-list button.is-active { border-color: rgba(74, 158, 255, .6); background: var(--accent-soft); box-shadow: 0 0 20px rgba(74, 158, 255, .12); }
+.route-list__num { font-size: 11px; letter-spacing: .12em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.route-list__text { display: grid; line-height: 1.25; }
+.route-list__text strong { font-size: 14px; font-weight: 500; }
+.route-list__text small { font-size: 11px; color: var(--muted); }
+.route-list__arrow { color: var(--dim); transition: transform .3s var(--ease), color .3s; }
+.route-list button:hover .route-list__arrow { color: var(--accent); transform: translateX(3px); }
+.route-list button.is-visited .gate-icon { border-color: rgba(74, 158, 255, .9); box-shadow: 0 0 10px rgba(74, 158, 255, .5); }
+.gate-icon { width: 14px; height: 22px; border: 1.5px solid rgba(150, 195, 255, .6); border-radius: 2px 7px 0 0; border-bottom: 0; position: relative; justify-self: center; }
+.gate-icon::after { content: ""; position: absolute; left: -5px; right: -5px; bottom: -3px; height: 3px; border-radius: 50%; border: 1px solid rgba(110, 175, 255, .6); }
+
+.intro-playing .hero__intro { display: none; }
+.intro-playing .route-list__title { margin-top: 0; }
+.intro-playing .route-list li:not(.is-shown) { opacity: 0; transform: translateX(18px); }
+.intro-playing .route-list li.is-shown .gate-icon { animation: gate-pop 1.2s var(--ease); }
+.intro-playing .panel--hero { --top: 14vh; width: min(340px, 30vw); transition: opacity .7s var(--ease), visibility .7s; }
+.intro-playing .panel--hero { padding: 0; overflow: visible; background: none; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.intro-playing .panel--hero::before { display: none; }
+.intro-playing .route-list button { background: rgba(10, 13, 18, .62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.intro-gate .panel--hero { opacity: 0 !important; visibility: hidden !important; }
+@keyframes gate-pop { 0% { box-shadow: 0 0 0 rgba(74, 158, 255, 0); } 30% { box-shadow: 0 0 16px rgba(74, 158, 255, .9); border-color: #9fd0ff; } }
+
+.gate-tag { position: absolute; z-index: 3; left: 50%; top: 50%; display: flex; align-items: baseline; gap: 10px; padding: 9px 16px; border: 1px solid rgba(110, 175, 255, .55); border-radius: 10px; background: rgba(8, 12, 20, .72); box-shadow: 0 0 24px rgba(74, 158, 255, .25); transform: translate(-50%, calc(-100% - 70px)); white-space: nowrap; opacity: 0; visibility: hidden; pointer-events: none; }
+.gate-tag span { font-size: 11px; letter-spacing: .14em; color: var(--accent); }
+.gate-tag strong { font-size: 14px; font-weight: 500; letter-spacing: .04em; }
 
 /* ---------- Подробности проекта ---------- */
 
@@ -293,10 +324,16 @@ h1, h2, h3, h4, p { margin: 0; }
   body { font-size: 14px; }
   .scene { bottom: auto; height: var(--scene-h); }
   .scene::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: linear-gradient(transparent, var(--bg)); }
-  .hud-frame, .fog i + i, .hud__hint { display: none; }
+  .hud-frame, .fog, .hud__hint { display: none; }
+  .plate.is-active > img:not(.plate__fallback) { animation: none; }
+  .gate-tag { transform: translate(-50%, calc(-100% - 36px)); padding: 7px 12px; }
   .vignette { background: linear-gradient(180deg, rgba(4, 5, 8, .55), transparent 30%); }
 
-  .topbar { padding: 14px 16px 0; flex-direction: column; gap: 0; }
+  .topbar { padding: calc(14px + env(safe-area-inset-top)) 16px 0; flex-direction: column; gap: 0; }
+  .route-list__title { margin-top: 20px; }
+  .route-list button { min-height: 50px; }
+  .intro-playing .panel--hero { width: auto; padding: 18px 18px 28px; }
+  .intro-gate .panel--hero { opacity: 1 !important; visibility: visible !important; }
   .brand { height: 32px; gap: 12px; }
   .brand__mark { width: 32px; }
   .brand__divider { height: 22px; }

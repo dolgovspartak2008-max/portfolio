@@ -83,6 +83,8 @@
   ];
   const LAST = STAGES.length - 1;
   const INTRO_END = 7.45;
+  const INTRO_MARKS = [0.7, 1.9, 3.1, 4.3];
+  const INTRO_GATE = 6.1;
   const PLATE_AR = 1672 / 941;
   const WORKS_PREVIEW = 6;
   const SEEN_KEY = 'spartak-drive-seen';
@@ -201,7 +203,7 @@
   function updateHud(target) {
     const stage = target ?? state.stage;
     app.dataset.stage = String(stage);
-    $$('#route-nav button').forEach((button) => {
+    $$('#route-nav button, #route-list button').forEach((button) => {
       const index = Number(button.dataset.go);
       button.classList.toggle('is-active', index === stage);
       button.classList.toggle('is-visited', state.visited.has(index));
@@ -318,6 +320,11 @@
     bloom.style.setProperty('--by', `${origin.y}px`);
     bloom.classList.toggle('bloom--final', target === LAST);
 
+    const tag = $('#gate-tag');
+    $('#gate-tag-num').textContent = String(target).padStart(2, '0');
+    $('#gate-tag-label').textContent = STAGES[target].label.replace(/^\d+ · /, '');
+    tag.style.left = `${origin.x}px`;
+    tag.style.top = `${origin.y}px`;
     const children = $$(':scope > *', inPanel);
     const shift = mobile ? { x: 28 * dir, y: 0 } : { x: 0, y: 18 };
     const tl = gsap.timeline({ onComplete: finish, defaults: { ease: 'power2.inOut' } });
@@ -342,6 +349,11 @@
       if (!mobile) {
         tl.fromTo(outPlate, { filter: 'blur(0px)' }, { filter: 'blur(3px)', duration: total * 0.5, ease: 'power1.in' }, total * 0.1);
       }
+    }
+
+    if (target > 0 && !options.fromIntro) {
+      tl.fromTo(tag, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: total * 0.3, ease: 'power2.out' }, 0.05)
+        .to(tag, { autoAlpha: 0, y: -12, duration: total * 0.25, ease: 'power2.in' }, total * 0.5);
     }
 
     const panelAt = options.fromIntro ? 0.55 : total * 0.68;
@@ -371,6 +383,8 @@
     if (!state.introPlaying) return;
     const t = video.currentTime || 0;
     setProgress(Math.min(1, t / (INTRO_END + 0.2)) * 0.98);
+    $$('#route-list li').forEach((item, index) => item.classList.toggle('is-shown', t >= INTRO_MARKS[index]));
+    root.classList.toggle('intro-gate', t >= INTRO_GATE);
     if (t >= INTRO_END) { finishIntro(); return; }
     introFrame = requestAnimationFrame(watchIntro);
   }
@@ -378,6 +392,7 @@
   async function playIntro() {
     if (video.classList.contains('is-hidden') || reducedMotion.matches) { goTo(1); return; }
     state.introPlaying = true;
+    $$('#route-list li').forEach((item) => item.classList.remove('is-shown'));
     root.classList.add('intro-playing');
     $('#skip-intro').hidden = false;
     updateHud(0);
@@ -393,7 +408,7 @@
   function stopIntro() {
     state.introPlaying = false;
     cancelAnimationFrame(introFrame);
-    root.classList.remove('intro-playing');
+    root.classList.remove('intro-playing', 'intro-gate');
     $('#skip-intro').hidden = true;
     state.introDone = true;
     writeSeen();
@@ -473,7 +488,14 @@
   function onTouchStart(event) {
     if (event.touches.length !== 1 || !$('#project-modal').hidden) { touch = null; return; }
     const point = event.touches[0];
-    touch = { x: point.clientX, y: point.clientY, t: performance.now(), target: event.target };
+    touch = {
+      x: point.clientX,
+      y: point.clientY,
+      t: performance.now(),
+      target: event.target,
+      atEnd: !canScroll(event.target, 1),
+      atStart: !canScroll(event.target, -1),
+    };
   }
 
   function onTouchEnd(event) {
@@ -492,7 +514,7 @@
     }
     if (Math.abs(dy) > 64 && Math.abs(dy) > Math.abs(dx) * 1.4) {
       const dir = dy < 0 ? 1 : -1;
-      if (start.target.closest('.panel') && (isMobile() || canScroll(start.target, dir))) return;
+      if (start.target.closest('.panel') && !(dir > 0 ? start.atEnd : start.atStart)) return;
       if (state.introPlaying && dir > 0) { finishIntro(); return; }
       step(dir);
     }
