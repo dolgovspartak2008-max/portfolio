@@ -135,7 +135,7 @@ h1, h2, h3, h4, p { margin: 0; }
 .panel.is-active { opacity: 1; visibility: visible; }
 .panel::before { content: ""; position: absolute; top: -1px; height: 1px; right: 28px; left: 38%; background: linear-gradient(90deg, transparent, rgba(110, 180, 255, .85)); box-shadow: 0 0 10px rgba(74, 158, 255, .5); pointer-events: none; }
 .panel--hero { --top: 22vh; right: 6vw; width: min(460px, 36vw); background: linear-gradient(160deg, rgba(14, 18, 25, .62), rgba(8, 10, 13, .7)); }
-.panel--about { --top: clamp(96px, 21vh, 220px); right: 4.5vw; width: min(560px, 38vw); }
+.panel--about { --top: clamp(96px, 18vh, 200px); left: 4vw; width: min(540px, 36vw); }
 .panel--works { --top: clamp(96px, 13vh, 150px); left: 4vw; width: min(900px, 54vw); }
 .panel--price { --top: clamp(110px, 21vh, 230px); left: 5vw; width: min(620px, 44vw); }
 .panel--contacts { --top: clamp(100px, 16vh, 190px); left: 3vw; width: min(540px, 38vw); }
@@ -263,7 +263,6 @@ h1, h2, h3, h4, p { margin: 0; }
 .intro-playing .panel--hero { padding: 0; overflow: visible; background: none; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .intro-playing .panel--hero::before { display: none; }
 .intro-playing .route-list button { background: rgba(10, 13, 18, .62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
-.intro-gate .panel--hero { opacity: 0 !important; visibility: hidden !important; }
 @keyframes gate-pop { 0% { box-shadow: 0 0 0 rgba(74, 158, 255, 0); } 30% { box-shadow: 0 0 16px rgba(74, 158, 255, .9); border-color: #9fd0ff; } }
 
 .gate-tag { position: absolute; z-index: 3; left: 50%; top: 50%; display: flex; align-items: baseline; gap: 10px; padding: 9px 16px; border: 1px solid rgba(110, 175, 255, .55); border-radius: 10px; background: rgba(8, 12, 20, .72); box-shadow: 0 0 24px rgba(74, 158, 255, .25); transform: translate(-50%, calc(-100% - 70px)); white-space: nowrap; opacity: 0; visibility: hidden; pointer-events: none; }
@@ -317,101 +316,104 @@ h1, h2, h3, h4, p { margin: 0; }
   .route-nav__num { font-size: 12px; }
 }
 
-/* ---------- Телефоны: сцена сверху, панель снизу ---------- */
+/* ---------- Телефоны: сцена на весь экран, карточки снизу ---------- */
 
 @media (max-width: 760px) {
-  :root { --scene-h: 44svh; --hud-h: 64px; }
+  :root { --hud-h: 64px; }
   body { font-size: 14px; }
-  .scene { bottom: auto; height: var(--scene-h); }
-  .scene::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: linear-gradient(transparent, var(--bg)); }
+  .scene::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 38%, rgba(8, 10, 13, .75) 52%, var(--bg) 62%); pointer-events: none; }
   .hud-frame, .fog, .hud__hint { display: none; }
   .plate.is-active > img:not(.plate__fallback) { animation: none; }
+  .vignette { background: linear-gradient(180deg, rgba(4, 5, 8, .6), transparent 22%); }
   .gate-tag { transform: translate(-50%, calc(-100% - 36px)); padding: 7px 12px; }
-  .vignette { background: linear-gradient(180deg, rgba(4, 5, 8, .55), transparent 30%); }
 
-  .topbar { padding: calc(14px + env(safe-area-inset-top)) 16px 0; flex-direction: column; gap: 0; }
-  .route-list__title { margin-top: 20px; }
-  .route-list button { min-height: 50px; }
-  .intro-playing .panel--hero { width: auto; padding: 18px 18px 28px; }
-  .intro-gate .panel--hero { opacity: 1 !important; visibility: visible !important; }
+  .topbar { padding: calc(14px + env(safe-area-inset-top)) 16px 0; flex-direction: column; gap: 10px; }
   .brand { height: 32px; gap: 12px; }
   .brand__mark { width: 32px; }
   .brand__divider { height: 22px; }
   .brand__text { font-size: 11px; }
-  .route-nav { position: fixed; left: 0; right: 0; top: calc(var(--scene-h) - 46px); }
-  .route-nav ol { justify-content: space-between; padding: 0 8px; overflow-x: auto; scrollbar-width: none; }
-  .route-nav button { flex-direction: column; align-items: center; gap: 0; min-width: 72px; padding: 6px 6px 12px; font-size: 11px; white-space: nowrap; }
-  .route-nav button::after { left: 18px; right: 18px; bottom: 4px; }
+  .route-nav { align-self: stretch; }
+  .route-nav ol { justify-content: space-between; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+  .route-nav button { flex-direction: column; align-items: center; gap: 0; min-width: 0; padding: 6px 6px 12px; font-size: 11px; white-space: nowrap; }
+  .route-nav button::after { left: 14px; right: 14px; bottom: 4px; }
 
-  .panels { top: var(--scene-h); bottom: var(--hud-h); }
-  .panel, .panel--hero, .panel--about, .panel--works, .panel--price, .panel--contacts {
-    --top: 0px;
-    inset: 0;
+  .panels { inset: 44% 10px calc(var(--hud-h) + 10px); }
+  .panel, .panel--hero, .panel--about, .panel--works, .panel--price, .panel--contacts,
+  .intro-playing .panel--hero {
+    --top: auto;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: auto;
-    max-height: none;
-    padding: 18px 18px 28px;
-    border: 0;
-    border-top: 1px solid var(--line);
-    border-radius: 20px 20px 0 0;
-    background: linear-gradient(180deg, rgba(16, 20, 27, .96), var(--bg) 40%);
-    box-shadow: none;
+    max-height: 100%;
+    padding: 18px 16px 20px;
+    border-radius: 20px;
+    background: rgba(12, 15, 21, .9);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, .45);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+  .intro-playing .panel--hero { background: rgba(12, 15, 21, .82); border-color: var(--line); }
   .panel::before { left: 45%; right: 24px; }
-  .panel h1 { font-size: 28px; margin-top: 10px; }
-  .panel h2 { font-size: 30px; }
-  .title-xl { font-size: 40px !important; }
-  .panel__dash { margin-bottom: 12px; }
-  .panel__actions { margin-top: 20px; }
+  .panel h1 { font-size: 26px; margin-top: 8px; }
+  .panel h2 { font-size: 28px; }
+  .title-xl { font-size: 36px !important; }
+  .panel__lead { margin-top: 10px; font-size: 14px; }
+  .panel__dash { margin-bottom: 10px; }
+  .panel__actions { margin-top: 16px; }
   .panel__actions .button { flex: 1 1 auto; }
+  .route-list__title { margin-top: 16px; }
+  .intro-playing .route-list__title { margin-top: 0; }
+  .route-list { gap: 6px; }
+  .route-list button { min-height: 48px; padding: 6px 12px; }
 
-  .about { grid-template-columns: 84px 1fr; gap: 16px; margin-top: 16px; }
-  .about__photo { width: 84px; height: 84px; border-radius: 12px; }
+  .about { grid-template-columns: 72px 1fr; gap: 14px; margin-top: 14px; }
+  .about__photo { width: 72px; height: 72px; border-radius: 12px; }
   .about__copy { padding-left: 0; border-left: 0; font-size: 13px; }
-  .about__lead { font-size: 15px; }
-  .about__copy p:not(.about__lead) { grid-column: 1 / -1; }
-  .chips { margin-top: 18px; }
-  .chip { min-height: 38px; padding: 0 12px; font-size: 12px; }
+  .about__lead { font-size: 14px; }
+  .chips { margin-top: 16px; gap: 6px; }
+  .chip { min-height: 36px; padding: 0 12px; font-size: 12px; }
 
-  .works { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
-  .work-card__meta { left: 10px; right: 26px; bottom: 9px; }
+  .works { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+  .work-card__meta { left: 10px; right: 24px; bottom: 8px; }
   .work-card__meta strong { font-size: 12px; }
   .work-card__meta small { font-size: 9px; letter-spacing: .1em; }
-  .work-card__arrow { right: 9px; bottom: 9px; font-size: 13px; }
-  .button--ghost { width: 100%; }
+  .work-card__arrow { right: 8px; bottom: 8px; font-size: 13px; }
+  .button--ghost { width: 100%; margin-top: 14px; }
 
-  .price-tabs { flex-wrap: nowrap; overflow-x: auto; margin: 18px -18px 0; padding: 0 18px 4px; scrollbar-width: none; }
+  .price-tabs { flex-wrap: nowrap; overflow-x: auto; margin: 14px -16px 0; padding: 0 16px 4px; scrollbar-width: none; }
   .price-tab { flex: none; }
-  .price-row { grid-template-columns: 22px 1fr auto; gap: 10px; min-height: 56px; padding: 10px 14px; }
+  .price-row { grid-template-columns: 22px 1fr auto; gap: 10px; min-height: 52px; padding: 8px 14px; }
   .price-row__line { display: none; }
   .price-row__title { font-size: 11px; letter-spacing: .08em; }
   .price-row__value { font-size: 16px; }
-  .price-note { margin: 16px 0; }
+  .price-note { margin: 14px 0; }
   .panel--price .button { width: 100%; }
 
-  .contacts { margin: 18px 0 20px; }
-  .contact { grid-template-columns: 44px 1fr auto; gap: 14px; min-height: 64px; padding: 10px 16px 10px 10px; }
+  .panel__rule { margin: 12px 0 14px; }
+  .contacts { margin: 14px 0 16px; gap: 8px; }
+  .contact { grid-template-columns: 44px 1fr auto; gap: 14px; min-height: 60px; padding: 8px 14px 8px 8px; }
   .contact__icon { width: 44px; height: 44px; }
 
-  .hud { height: var(--hud-h); padding: 0 12px calc(env(safe-area-inset-bottom) * .5) 16px; border-top: 1px solid var(--line); background: rgba(8, 10, 13, .96); }
+  .hud { height: calc(var(--hud-h) + env(safe-area-inset-bottom)); padding: 0 12px env(safe-area-inset-bottom) 16px; border-top: 1px solid var(--line); background: rgba(8, 10, 13, .96); }
   .progress { gap: 10px; min-width: 0; }
   .progress__track { width: 72px; flex: none; }
   .progress__label { font-size: 10px; letter-spacing: .14em; overflow: hidden; text-overflow: ellipsis; }
   .hud__controls { gap: 6px; flex: none; }
-  .hud-button { min-height: 40px; padding: 0 12px; font-size: 10px; letter-spacing: .1em; }
+  .hud-button { min-height: 40px; padding: 0 12px; font-size: 10px; letter-spacing: .1em; -webkit-backdrop-filter: none; backdrop-filter: none; }
   .hud-button--icon { width: 40px; padding: 0; }
   #route-restart { display: none; }
 
   .project-modal { padding: 0; place-items: end stretch; }
-  .project-modal__card { grid-template-columns: 1fr; grid-template-rows: auto 1fr; width: 100%; max-height: 92svh; border-radius: 20px 20px 0 0; }
+  .project-modal__card { grid-template-columns: 1fr; grid-template-rows: auto 1fr; width: 100%; max-height: 92%; border-radius: 20px 20px 0 0; }
   .project-modal__media { min-height: 0; aspect-ratio: 16 / 10; }
   .project-modal__body { padding: 22px 18px calc(22px + env(safe-area-inset-bottom)); }
   .project-modal__actions .button { flex: 1 1 auto; }
 }
 
-@media (max-width: 760px) and (max-height: 640px) {
-  :root { --scene-h: 38svh; }
+@media (max-width: 760px) and (max-height: 680px) {
+  .panels { top: 40%; }
 }
 
 @media (max-height: 520px) and (min-width: 761px) {

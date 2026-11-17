@@ -82,9 +82,7 @@
     { hash: 'contacts', label: '04 · Контакты' },
   ];
   const LAST = STAGES.length - 1;
-  const INTRO_END = 7.45;
-  const INTRO_MARKS = [0.7, 1.9, 3.1, 4.3];
-  const INTRO_GATE = 6.1;
+  const INTRO_MARKS = [0.8, 2.2, 3.6, 5.0];
   const PLATE_AR = 1672 / 941;
   const WORKS_PREVIEW = 6;
   const SEEN_KEY = 'spartak-drive-seen';
@@ -135,11 +133,14 @@
     const ch = rect.height;
     plates.forEach((plate) => {
       const ar = Number(plate.dataset.ar) || PLATE_AR;
-      const w = Math.max(cw, ch * ar);
+      const mobile = isMobile();
+      const w = Math.max(cw, (mobile ? ch * 0.6 : ch) * ar);
       const h = w / ar;
-      const fx = Number(isMobile() ? plate.dataset.mfx : plate.dataset.fx) || 0.5;
+      const fx = Number(mobile ? plate.dataset.mfx : plate.dataset.fx) || 0.5;
       const left = Math.min(0, Math.max(cw - w, cw / 2 - fx * w));
-      const top = Math.min(0, Math.max(ch - h, ch / 2 - 0.5 * h));
+      const top = mobile
+        ? Math.min(0, ch * 0.3 - (Number(plate.dataset.my) || 0.6) * h)
+        : Math.min(0, Math.max(ch - h, ch / 2 - 0.5 * h));
       Object.assign(plate.style, { width: `${w}px`, height: `${h}px`, left: `${left}px`, top: `${top}px` });
       plate.style.setProperty('--gx', `${Number(plate.dataset.gx) * 100}%`);
       plate.style.setProperty('--gy', `${Number(plate.dataset.gy) * 100}%`);
@@ -278,7 +279,7 @@
 
     const fast = reducedMotion.matches || !window.gsap;
     const mobile = isMobile();
-    const total = fast ? 0.35 : (options.fromIntro ? 1.1 : (mobile ? 1.0 : 1.45));
+    const total = fast ? 0.35 : (options.fromIntro ? 0.8 : (mobile ? 1.05 : 1.4));
     setProgress(target, total);
 
     const finish = () => {
@@ -326,37 +327,41 @@
     tag.style.left = `${origin.x}px`;
     tag.style.top = `${origin.y}px`;
     const children = $$(':scope > *', inPanel);
-    const shift = mobile ? { x: 28 * dir, y: 0 } : { x: 0, y: 18 };
-    const tl = gsap.timeline({ onComplete: finish, defaults: { ease: 'power2.inOut' } });
+    const shift = mobile ? { x: 0, y: 26 } : { x: 0, y: 18 };
+    const tl = gsap.timeline({ onComplete: finish, defaults: { ease: 'sine.inOut' } });
 
-    tl.to(outPanel, { autoAlpha: 0, x: -shift.x * 0.6, y: -shift.y * 0.4, duration: 0.32, ease: 'power2.in' }, 0);
-    gsap.set(inPlate, { autoAlpha: 0, scale: dir > 0 ? 1.07 : 0.97, transformOrigin: originIn });
+    tl.to(outPanel, { autoAlpha: 0, x: -shift.x * 0.6, y: mobile ? 16 : -shift.y * 0.4, duration: 0.32, ease: 'power2.in' }, 0);
     gsap.set(outPlate, { transformOrigin: originOut });
 
     if (options.fromIntro) {
-      tl.to(bloom, { opacity: 0.95, duration: 0.28, ease: 'power1.in' }, 0)
-        .set(inPlate, { autoAlpha: 1 }, 0.3)
-        .set(outPlate, { autoAlpha: 0 }, 0.3)
-        .to(inPlate, { scale: 1, duration: 0.9, ease: 'power3.out' }, 0.3)
-        .to(bloom, { opacity: 0, duration: 0.75, ease: 'power2.out' }, 0.32);
+      gsap.set(inPlate, { autoAlpha: 0, scale: 1, transformOrigin: originIn });
+      tl.to(inPlate, { autoAlpha: 1, duration: 0.25, ease: 'none' }, 0)
+        .set(outPlate, { autoAlpha: 0 }, 0.3);
+    } else if (dir > 0) {
+      gsap.set(inPlate, { autoAlpha: 0, scale: 1.06, transformOrigin: originIn });
+      tl.to(outPlate, { scale: 1.12, duration: total * 0.6, ease: 'power1.in' }, 0)
+        .to(outPlate, { autoAlpha: 0, duration: total * 0.45, ease: 'sine.in' }, total * 0.08)
+        .to(bloom, { opacity: 0.32, duration: total * 0.4, ease: 'sine.in' }, total * 0.1)
+        .to(bloom, { opacity: 0, duration: total * 0.45, ease: 'sine.out' }, total * 0.5)
+        .to(inPlate, { autoAlpha: 1, duration: total * 0.45, ease: 'sine.out' }, total * 0.42)
+        .to(inPlate, { scale: 1, duration: total * 0.6, ease: 'power2.out' }, total * 0.4);
     } else {
-      tl.to(outPlate, { scale: dir > 0 ? 1.16 : 0.95, duration: total * 0.62, ease: 'power2.in' }, 0)
-        .to(bloom, { opacity: 0.82, duration: total * 0.4, ease: 'power1.in' }, total * 0.1)
-        .to(inPlate, { autoAlpha: 1, duration: total * 0.2, ease: 'none' }, total * 0.44)
-        .to(outPlate, { autoAlpha: 0, duration: total * 0.16, ease: 'none' }, total * 0.5)
-        .to(inPlate, { scale: 1, duration: total * 0.55, ease: 'power3.out' }, total * 0.46)
-        .to(bloom, { opacity: 0, duration: total * 0.45, ease: 'power2.out' }, total * 0.55);
-      if (!mobile) {
-        tl.fromTo(outPlate, { filter: 'blur(0px)' }, { filter: 'blur(3px)', duration: total * 0.5, ease: 'power1.in' }, total * 0.1);
-      }
+      gsap.set(inPlate, { autoAlpha: 0, scale: 1.1, transformOrigin: originIn });
+      tl.to(outPlate, { scale: 1.04, duration: total * 0.55, ease: 'sine.in' }, 0)
+        .to(outPlate, { autoAlpha: 0, duration: total * 0.45, ease: 'sine.in' }, 0.04)
+        .to(inPlate, { autoAlpha: 1, duration: total * 0.45, ease: 'sine.out' }, total * 0.38)
+        .to(inPlate, { scale: 1, duration: total * 0.7, ease: 'power3.out' }, total * 0.32);
+    }
+    if (!mobile && !options.fromIntro) {
+      tl.fromTo(outPlate, { filter: 'blur(0px)' }, { filter: 'blur(5px)', duration: total * 0.45, ease: 'sine.in' }, 0);
     }
 
-    if (target > 0 && !options.fromIntro) {
+    if (dir > 0 && target > 0 && !options.fromIntro) {
       tl.fromTo(tag, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: total * 0.3, ease: 'power2.out' }, 0.05)
         .to(tag, { autoAlpha: 0, y: -12, duration: total * 0.25, ease: 'power2.in' }, total * 0.5);
     }
 
-    const panelAt = options.fromIntro ? 0.55 : total * 0.68;
+    const panelAt = options.fromIntro ? 0.15 : total * 0.62;
     tl.call(() => setPanelState(target, true), null, panelAt)
       .fromTo(inPanel, { autoAlpha: 0, x: shift.x, y: shift.y }, { autoAlpha: 1, x: 0, y: 0, duration: 0.5, ease: 'power3.out' }, panelAt)
       .fromTo(children, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.42, stagger: 0.045, ease: 'power2.out', clearProps: 'transform,opacity,visibility' }, panelAt + 0.06);
@@ -382,10 +387,10 @@
   function watchIntro() {
     if (!state.introPlaying) return;
     const t = video.currentTime || 0;
-    setProgress(Math.min(1, t / (INTRO_END + 0.2)) * 0.98);
+    const end = video.duration || 8.33;
+    setProgress(Math.min(1, t / end) * 0.98);
     $$('#route-list li').forEach((item, index) => item.classList.toggle('is-shown', t >= INTRO_MARKS[index]));
-    root.classList.toggle('intro-gate', t >= INTRO_GATE);
-    if (t >= INTRO_END) { finishIntro(); return; }
+    if (t >= end - 0.06) { finishIntro(); return; }
     introFrame = requestAnimationFrame(watchIntro);
   }
 
@@ -408,7 +413,7 @@
   function stopIntro() {
     state.introPlaying = false;
     cancelAnimationFrame(introFrame);
-    root.classList.remove('intro-playing', 'intro-gate');
+    root.classList.remove('intro-playing');
     $('#skip-intro').hidden = true;
     state.introDone = true;
     writeSeen();
@@ -417,9 +422,9 @@
 
   function finishIntro() {
     if (!state.introPlaying) return;
-    const playedToGate = (video.currentTime || 0) >= INTRO_END - 0.4;
+    const playedToEnd = (video.currentTime || 0) >= (video.duration || 8.33) - 0.3;
     stopIntro();
-    goTo(1, { fromIntro: playedToGate });
+    goTo(1, { fromIntro: playedToEnd });
   }
 
   /* ---------- Ввод: колесо, клавиатура, касания ---------- */
