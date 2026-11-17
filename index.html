@@ -1,255 +1,156 @@
 <!doctype html>
-<html lang="ru" class="intro-pending">
+<html lang="ru" class="is-loading">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#030712" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#080A0D" />
     <meta name="color-scheme" content="dark" />
-    <meta name="description" content="Спартак — разработка сайтов, веб-приложений, Telegram-ботов и автоматизация задач для бизнеса." />
-    <meta property="og:title" content="Спартак — сайты, приложения и автоматизация" />
-    <meta property="og:description" content="Сайты, приложения, боты и автоматизация рутинных задач для бизнеса — от идеи до запуска." />
+    <meta name="description" content="Спартак — разработка сайтов, Telegram-ботов, веб-приложений, CRM и автоматизация задач бизнеса." />
+    <meta property="og:title" content="Спартак — сайты, боты, приложения и автоматизация" />
+    <meta property="og:description" content="Портфолио-поездка: обо мне, работы, примерные цены и контакты." />
     <meta property="og:type" content="website" />
-    <title>Спартак — сайты, приложения и автоматизация</title>
-    <style id="intro-critical">
-      html.intro-pending, html.intro-pending body { margin: 0; overflow: hidden; background: #01040c; }
-      html.intro-pending body > :not(.intro) { visibility: hidden; }
-      html.intro-pending .intro { position: fixed; z-index: 2147483647; inset: -2px; min-height: calc(100dvh + 4px); background: #01040c; }
-    </style>
-    <script>window.__introFallback = window.setTimeout(function () { document.documentElement.classList.remove('intro-pending'); }, 4000);</script>
+    <meta property="og:image" content="assets/drive/start.webp" />
+    <title>Спартак — сайты, боты, приложения и автоматизация</title>
+    <link rel="preload" href="assets/drive/intro-poster.webp" as="image" />
+    <link rel="preload" href="assets/fonts/inter-light.woff" as="font" type="font/woff" crossorigin />
     <link rel="stylesheet" href="styles.css" />
     <script src="vendor/gsap.min.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
-    <a class="skip-link" href="#main">К основному содержимому</a>
+    <a class="skip-link" href="#panels">К содержимому</a>
 
-    <div class="intro" id="intro" aria-hidden="true">
-      <div class="intro__panel intro__panel--left"></div>
-      <div class="intro__panel intro__panel--right"></div>
-      <div class="intro__flash"></div>
-      <div class="intro__line"></div>
-      <div class="intro__word" aria-label="Portfolio">
-        P<span class="intro__mark"><span></span></span>rtfolio
+    <div class="loader" id="loader" role="status" aria-live="polite">
+      <div class="loader__mark" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="loader__bar"><span id="loader-bar"></span></div>
+      <p class="loader__label">Прогреваем двигатель</p>
+    </div>
+
+    <div class="app" id="app" data-stage="0">
+      <div class="scene" id="scene" aria-hidden="true">
+        <div class="plate plate--video" data-plate="0" data-ar="1.75" data-fx="0.5" data-mfx="0.27" data-gx="0.686" data-gy="0.62">
+          <video id="intro-video" muted playsinline preload="metadata" poster="assets/drive/intro-poster.webp" disablepictureinpicture></video>
+          <img class="plate__fallback" src="assets/drive/start.webp" alt="" />
+        </div>
+        <div class="plate" data-plate="1" data-src="about" data-fx="0.5" data-mfx="0.4" data-gx="0.568" data-gy="0.62"><i class="gate-glow"></i></div>
+        <div class="plate" data-plate="2" data-src="works" data-fx="0.5" data-mfx="0.68" data-gx="0.575" data-gy="0.63"><i class="gate-glow"></i></div>
+        <div class="plate" data-plate="3" data-src="price" data-fx="0.5" data-mfx="0.72" data-gx="0.816" data-gy="0.58"><i class="gate-glow"></i></div>
+        <div class="plate" data-plate="4" data-src="contacts" data-fx="0.5" data-mfx="0.8" data-gx="0.909" data-gy="0.57"><i class="gate-glow gate-glow--final"></i></div>
+        <div class="fog"><i></i><i></i></div>
+        <div class="bloom" id="bloom"></div>
+        <div class="vignette"></div>
+      </div>
+
+      <svg class="hud-frame" aria-hidden="true" preserveAspectRatio="none"><path id="hud-frame-path" /></svg>
+
+      <header class="topbar">
+        <a class="brand" href="#start" data-go="0" aria-label="Спартак — в начало маршрута">
+          <svg class="brand__mark" viewBox="0 0 40 24" aria-hidden="true"><path d="M10 21L18 3M19 21L27 3" /><path class="brand__accent" d="M28 21L36 3" /></svg>
+          <span class="brand__divider" aria-hidden="true"></span>
+          <span class="brand__text">Спартак<small>разработка</small></span>
+        </a>
+
+        <nav class="route-nav" aria-label="Разделы маршрута">
+          <ol id="route-nav">
+            <li><button type="button" data-go="1"><span class="route-nav__num">01</span><span class="route-nav__label">Обо мне</span></button></li>
+            <li><button type="button" data-go="2"><span class="route-nav__num">02</span><span class="route-nav__label">Мои работы</span></button></li>
+            <li><button type="button" data-go="3"><span class="route-nav__num">03</span><span class="route-nav__label">Прайс</span></button></li>
+            <li><button type="button" data-go="4"><span class="route-nav__num">04</span><span class="route-nav__label">Контакты</span></button></li>
+          </ol>
+        </nav>
+      </header>
+
+      <main class="panels" id="panels" tabindex="-1">
+        <section class="panel panel--hero" data-panel="0" aria-labelledby="hero-title">
+          <p class="eyebrow">Портфолио</p>
+          <h1 id="hero-title">Сайты, боты и&nbsp;автоматизация для бизнеса</h1>
+          <p class="panel__lead" id="hero-lead">Спартак — разработка сайтов, Telegram-ботов, веб-приложений и CRM. От идеи до запуска.</p>
+          <div class="panel__actions">
+            <button class="button button--primary" type="button" data-go="1">Начать маршрут</button>
+            <button class="button" type="button" data-go="2">Сразу к работам</button>
+          </div>
+        </section>
+
+        <section class="panel panel--about" data-panel="1" aria-labelledby="about-title">
+          <span class="panel__dash" aria-hidden="true"></span>
+          <h2 id="about-title">Обо мне</h2>
+          <div class="about">
+            <img class="about__photo" id="about-photo" src="assets/portrait.jpg" alt="Спартак, разработчик" width="650" height="474" loading="lazy" />
+            <div class="about__copy" id="about-copy"></div>
+          </div>
+          <div class="chips" id="about-directions" role="list"></div>
+          <p class="chips__note" id="about-direction-note" aria-live="polite"></p>
+        </section>
+
+        <section class="panel panel--works" data-panel="2" aria-labelledby="works-title">
+          <p class="eyebrow eyebrow--line">Портфолио</p>
+          <h2 id="works-title">Мои работы</h2>
+          <p class="panel__kicker" id="works-count">Подборка проектов</p>
+          <div class="works" id="works-grid" role="list"></div>
+          <button class="button button--ghost" type="button" id="works-more" hidden>Смотреть все проекты <span aria-hidden="true">→</span></button>
+        </section>
+
+        <section class="panel panel--price" data-panel="3" aria-labelledby="price-title">
+          <span class="panel__dash" aria-hidden="true"></span>
+          <h2 id="price-title">Примерный прайс</h2>
+          <div class="price-tabs" id="price-tabs" role="tablist" aria-label="Категории услуг"></div>
+          <div class="price-list" id="price-list" role="tabpanel"></div>
+          <p class="price-note" id="price-note"></p>
+          <button class="button button--primary" type="button" data-go="4">Обсудить проект <span aria-hidden="true">→</span></button>
+        </section>
+
+        <section class="panel panel--contacts" data-panel="4" aria-labelledby="contacts-title">
+          <h2 id="contacts-title" class="title-xl">Контакты</h2>
+          <span class="panel__rule" aria-hidden="true"></span>
+          <p class="contacts__cta" id="contacts-cta">Есть идея? Давай реализуем.</p>
+          <p class="panel__kicker" id="contacts-subtitle"></p>
+          <ul class="contacts" id="contacts-list"></ul>
+          <a class="button button--primary button--wide" id="contacts-primary" href="https://t.me/Spartlak" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4L3 11l6 2.5M21 4l-4 16-8-6.5M21 4L9 13.5V19l3-3.2" /></svg>
+            <span>Написать в Telegram</span><span aria-hidden="true">→</span>
+          </a>
+        </section>
+      </main>
+
+      <div class="hud">
+        <div class="progress" aria-hidden="true">
+          <div class="progress__track"><i id="progress-fill"></i><b id="progress-car"></b></div>
+          <span class="progress__label" id="progress-label">Старт</span>
+        </div>
+        <div class="hud__controls">
+          <button class="hud-button" type="button" id="skip-intro" hidden>Пропустить вступление <span aria-hidden="true">»</span></button>
+          <button class="hud-button" type="button" id="route-restart" hidden>Вернуться к маршруту</button>
+          <button class="hud-button hud-button--icon" type="button" id="prev-stage" aria-label="Предыдущий раздел"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></button>
+          <button class="hud-button hud-button--icon" type="button" id="next-stage" aria-label="Следующий раздел"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg></button>
+        </div>
+        <p class="hud__hint" id="scroll-hint">Листайте, чтобы ехать дальше</p>
+      </div>
+
+      <div class="project-modal" id="project-modal" role="dialog" aria-modal="true" aria-labelledby="project-title" hidden>
+        <div class="project-modal__backdrop" data-close-project></div>
+        <article class="project-modal__card" tabindex="-1">
+          <button class="project-modal__close" type="button" data-close-project aria-label="Закрыть подробности проекта">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+          <div class="project-modal__media" id="project-media"></div>
+          <div class="project-modal__body">
+            <p class="eyebrow" id="project-meta"></p>
+            <h3 id="project-title"></h3>
+            <div id="project-details"></div>
+            <div class="project-modal__actions">
+              <a class="button button--primary" id="project-link" target="_blank" rel="noopener noreferrer">Открыть проект <span aria-hidden="true">↗</span></a>
+              <button class="button" type="button" data-close-project>Вернуться к маршруту</button>
+            </div>
+            <div class="project-modal__pager">
+              <button class="hud-button hud-button--icon" type="button" id="project-prev" aria-label="Предыдущий проект"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></button>
+              <span id="project-index"></span>
+              <button class="hud-button hud-button--icon" type="button" id="project-next" aria-label="Следующий проект"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg></button>
+            </div>
+          </div>
+        </article>
       </div>
     </div>
 
-    <header class="site-header" id="site-header">
-      <a class="brand" href="#home" aria-label="Спартак — на главную">
-        <span class="brand__icon" aria-hidden="true">&lt;/&gt;</span>
-        <span class="brand__text">
-          <strong>Спартак</strong>
-          <small>сайты · приложения · автоматизация</small>
-        </span>
-      </a>
-
-      <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Открыть меню">
-        <span></span><span></span>
-      </button>
-
-      <nav class="site-nav" id="site-nav" aria-label="Основная навигация">
-        <a href="#home" class="is-active">Главная</a>
-        <a href="#services">Услуги</a>
-        <a href="#works">Работы</a>
-        <a href="#pricing">Стоимость</a>
-        <a href="#contacts">Контакты</a>
-      </nav>
-    </header>
-
-    <main id="main">
-      <section class="hero" id="home" aria-labelledby="hero-title">
-        <div class="hero__grid">
-          <div class="hero__content">
-            <div class="hero__copy">
-              <p class="eyebrow">Привет, я Спартак</p>
-              <h1 id="hero-title">Делаю сайты, приложения и <span>автоматизирую задачи бизнеса.</span></h1>
-            </div>
-            <div class="hero__details">
-              <p class="hero__lead">Лендинги и сайты, веб-приложения, Telegram-боты и интеграции. Если работу в компании можно описать по шагам — её можно отдать программе.</p>
-              <div class="hero__actions">
-                <a class="button button--primary" href="https://t.me/spartlak" target="_blank" rel="noopener noreferrer">Обсудить задачу</a>
-                <a class="button button--secondary" href="#works">Посмотреть работы</a>
-              </div>
-              <ul class="hero__meta" aria-label="Направления">
-                <li>Сайты</li>
-                <li>Приложения</li>
-                <li>Боты и автоматизация</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="hero__visual">
-            <div class="portrait-frame">
-              <img src="assets/portrait.jpg" alt="Спартак, разработчик" width="650" height="474" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div class="post-hero">
-        <aside class="proof-strip" aria-label="Опыт">
-          <p id="proof-text"><strong>Живые проекты</strong> для фитнеса, отдыха, ресторанов, автобизнеса и других ниш.</p>
-          <a href="#works">Смотреть работы <span aria-hidden="true">↓</span></a>
-        </aside>
-
-        <section class="section services-section" id="services" aria-labelledby="services-title">
-          <div class="section-heading">
-            <p class="section-kicker">01 / Услуги</p>
-            <h2 id="services-title">Не только сайты</h2>
-            <p>Делаю то, что экономит время и приносит заявки: от одностраничника до системы, которая сама обрабатывает заказы.</p>
-          </div>
-          <div class="services-grid" id="services-list"></div>
-          <p class="services-note">Нет вашей задачи в списке? Напишите, что сейчас делается вручную, — предложу, как это автоматизировать и сколько это будет стоить.</p>
-        </section>
-
-        <section class="section works-section" id="works" aria-labelledby="works-title">
-          <div class="section-heading section-heading--split">
-            <div>
-              <p class="section-kicker">02 / Работы</p>
-              <h2 id="works-title">Работы</h2>
-            </div>
-            <p>Каждый проект открывается вживую. Используйте поиск по названию или нише.</p>
-          </div>
-          <div class="works-toolbar">
-            <label class="works-search">
-              <span class="sr-only">Поиск по работам</span>
-              <input type="search" id="works-search" placeholder="Поиск: ресторан, фитнес, бот…" autocomplete="off" />
-            </label>
-            <p class="works-count" id="works-count" aria-live="polite"></p>
-          </div>
-          <div id="projects-root"></div>
-          <div class="works-more">
-            <button class="button button--secondary" type="button" id="works-more" hidden>Показать ещё</button>
-          </div>
-        </section>
-
-        <section class="section process-section" id="process" aria-labelledby="process-title">
-          <div class="section-heading section-heading--split">
-            <div>
-              <p class="section-kicker">03 / Процесс</p>
-              <h2 id="process-title">Как проходит работа</h2>
-            </div>
-            <p>Одинаково для сайта, приложения или бота: сначала разбираемся в задаче, потом делаем.</p>
-          </div>
-          <ol class="process-list">
-            <li><span>01</span><div><h3>Задача</h3><p>Вы описываете, что нужно или что сейчас занимает время. Я задаю уточняющие вопросы.</p></div></li>
-            <li><span>02</span><div><h3>План и цена</h3><p>Предлагаю решение, сроки и стоимость. Начинаем после согласования.</p></div></li>
-            <li><span>03</span><div><h3>Разработка</h3><p>Делаю, показываю промежуточный результат, проверяю на реальных данных и устройствах.</p></div></li>
-            <li><span>04</span><div><h3>Запуск</h3><p>Публикую, подключаю домен или сервисы, вношу правки и помогаю разобраться.</p></div></li>
-          </ol>
-        </section>
-
-        <section class="section pricing-section" id="pricing" aria-labelledby="pricing-title">
-          <div class="section-heading">
-            <p class="section-kicker">04 / Стоимость</p>
-            <h2 id="pricing-title">Стоимость лендинга</h2>
-            <p>Цена лендинга видна сразу. Приложения, боты и автоматизация считаются индивидуально — напишите задачу в Telegram.</p>
-          </div>
-
-          <div class="pricing-layout">
-            <article class="base-package">
-              <div class="base-package__top">
-                <span class="status-dot">Базовый лендинг</span>
-                <strong id="base-price">от 9 000 ₽</strong>
-              </div>
-              <h3>Одностраничный сайт для бизнеса</h3>
-              <p>Подойдёт, чтобы рассказать об услуге и привести клиента к заявке.</p>
-              <ul class="included-list" id="included-list"></ul>
-              <p class="package-note">Интернет-магазин, личный кабинет, оплата, база данных и боты — отдельным проектом, по договорённости.</p>
-            </article>
-
-            <form class="calculator" id="calculator">
-              <div class="calculator__base" aria-label="Базовая услуга выбрана">
-                <span class="fixed-check" aria-hidden="true">✓</span>
-                <div><strong>Базовая разработка</strong><small>Всегда включена</small></div>
-                <b id="calculator-base-price">9 000 ₽</b>
-              </div>
-
-              <details class="extras-disclosure">
-                <summary>
-                  <span>Дополнительные услуги</span>
-                  <span class="summary-icon" aria-hidden="true"></span>
-                </summary>
-                <div class="extras-list" id="extras-list"></div>
-              </details>
-
-              <details class="brief-disclosure">
-                <summary>
-                  <span>Три вопроса о проекте</span>
-                  <span class="summary-icon" aria-hidden="true"></span>
-                </summary>
-                <div class="brief-grid">
-                  <label for="business-type">
-                    <span>Что вы продвигаете?</span>
-                    <select id="business-type" name="businessType">
-                      <option value="">Не выбрано</option>
-                      <option>Услуги</option>
-                      <option>Экспертный продукт</option>
-                      <option>Заведение</option>
-                      <option>Мероприятие</option>
-                      <option>Другое</option>
-                    </select>
-                  </label>
-                  <label for="content-status">
-                    <span>Контент уже готов?</span>
-                    <select id="content-status" name="contentStatus">
-                      <option value="">Не выбрано</option>
-                      <option>Готов</option>
-                      <option>Частично готов</option>
-                      <option>Нужна помощь</option>
-                    </select>
-                  </label>
-                  <label for="project-timeline">
-                    <span>Желаемый срок</span>
-                    <select id="project-timeline" name="timeline">
-                      <option value="">Не выбрано</option>
-                      <option>До 2 недель</option>
-                      <option>2–4 недели</option>
-                      <option>Не срочно</option>
-                    </select>
-                  </label>
-                </div>
-              </details>
-
-              <div class="estimate" aria-live="polite">
-                <p>Ваш расчёт</p>
-                <div class="estimate__lines" id="estimate-lines"></div>
-                <div class="estimate__total">
-                  <span>Предварительная стоимость</span>
-                  <strong id="estimate-total">9 000 ₽</strong>
-                </div>
-              </div>
-
-              <a class="button button--primary button--wide" id="telegram-order" href="https://t.me/spartlak" target="_blank" rel="noopener noreferrer">Обсудить заказ в Telegram</a>
-              <p class="calculator__note">Расчёт предварительный. Детали и сроки фиксируем после короткого обсуждения.</p>
-            </form>
-          </div>
-        </section>
-
-        <section class="section final-cta" id="contacts" aria-labelledby="contact-title">
-          <p class="section-kicker">05 / Контакты</p>
-          <h2 id="contact-title">Расскажите, что нужно сделать</h2>
-          <p>Сайт, приложение, бот или задача, которая отнимает часы каждую неделю. Отвечу в Telegram и предложу решение.</p>
-          <div class="final-cta__actions">
-            <a class="button button--primary" href="https://t.me/spartlak" target="_blank" rel="noopener noreferrer">Написать в Telegram</a>
-            <a class="text-link" href="https://t.me/spartakchokaet" target="_blank" rel="noopener noreferrer">Telegram-канал <span aria-hidden="true">↗</span></a>
-          </div>
-        </section>
-      </div>
-    </main>
-
-    <aside class="mobile-order-bar" aria-label="Быстрая связь">
-      <div><small>Лендинг от</small><strong id="mobile-estimate-total">9 000 ₽</strong></div>
-      <a id="mobile-telegram-order" href="https://t.me/spartlak" target="_blank" rel="noopener noreferrer">Обсудить проект</a>
-    </aside>
-
-    <footer class="footer">
-      <a class="brand brand--footer" href="#home"><span class="brand__icon" aria-hidden="true">&lt;/&gt;</span><strong>Спартак</strong></a>
-      <p>Сайты, приложения и автоматизация для бизнеса.</p>
-      <div class="footer__links">
-        <a href="https://t.me/spartlak" target="_blank" rel="noopener noreferrer">@spartlak</a>
-        <a href="https://t.me/spartakchokaet" target="_blank" rel="noopener noreferrer">Канал</a>
-      </div>
-      <small>© <span id="year"></span> Спартак</small>
-    </footer>
+    <noscript><p class="noscript">Для поездки по портфолио включите JavaScript. Связаться: <a href="https://t.me/Spartlak">t.me/Spartlak</a></p></noscript>
   </body>
 </html>

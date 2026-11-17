@@ -1,18 +1,11 @@
 (function () {
   'use strict';
 
-  const PAGE_SIZE = 12;
+  const formatPrice = (value) => `${Number(value).toLocaleString('ru-RU').replace(/\s/g, ' ')} ₽`;
 
-  const formatPrice = (value) => `${Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')} ₽`;
-
-  const calculateEstimate = (pricing, selectedKeys) => {
-    const selectedSet = new Set(selectedKeys);
-    const selected = pricing.extras.filter((item) => selectedSet.has(item.key));
-    return {
-      total: pricing.base.price + selected.reduce((sum, item) => sum + item.price, 0),
-      isFrom: selected.some((item) => item.isFrom),
-      selected,
-    };
+  const formatPriceLabel = (item) => {
+    if (!item || item.price === null || item.price === undefined || item.price === '') return 'по запросу';
+    return `${item.isFrom ? 'от ' : ''}${formatPrice(item.price)}`;
   };
 
   const legacyProjectImages = new Map([
@@ -38,6 +31,9 @@
       sortOrder: project.sortOrder ?? project.sort_order ?? 0,
       published: project.published,
       ...(project.previews ? { previews: project.previews } : {}),
+      ...(project.type ? { type: project.type } : {}),
+      ...(project.description ? { description: project.description } : {}),
+      ...(project.details ? { details: project.details } : {}),
     };
   });
 
@@ -55,17 +51,11 @@
     }
   };
 
-  const safeLiveUrl = (value) => {
+  const safeUrl = (value) => {
     try {
       const parsed = new URL(value);
       return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
     } catch (_) { return ''; }
-  };
-
-  const filterProjects = (projects, query) => {
-    const needle = String(query || '').trim().toLowerCase();
-    if (!needle) return projects;
-    return projects.filter((project) => `${project.title} ${project.category}`.toLowerCase().includes(needle));
   };
 
   const projectsWord = (count) => {
@@ -76,413 +66,833 @@
     return 'проектов';
   };
 
-  const buildTelegramUrl = (username, pricing, selectedKeys, brief = {}) => {
-    const cleanUsername = String(username || '').trim().replace(/^@/, '');
-    if (!cleanUsername) return '';
-
-    const estimate = calculateEstimate(pricing, selectedKeys);
-    const rows = [
-      `— ${pricing.base.title} — ${formatPrice(pricing.base.price)}`,
-      ...estimate.selected.map((item) => `— ${item.title} — ${item.isFrom ? 'от ' : ''}${formatPrice(item.price)}`),
-    ];
-    const totalLabel = `${estimate.isFrom ? 'от ' : ''}${formatPrice(estimate.total)}`;
-    const briefRows = [
-      ['Тип бизнеса', brief.businessType],
-      ['Контент', brief.contentStatus],
-      ['Срок', brief.timeline],
-    ].filter(([, value]) => value);
-    const message = [
-      'Здравствуйте! Хочу заказать лендинг.',
-      '',
-      'Выбранные услуги:',
-      ...rows,
-      ...(briefRows.length ? ['', 'О проекте:', ...briefRows.map(([label, value]) => `${label}: ${value}`)] : []),
-      '',
-      `Предварительная стоимость: ${totalLabel}`,
-      '',
-      'Хочу обсудить детали проекта.',
-    ].join('\n');
-
-    return `https://t.me/${cleanUsername}?text=${encodeURIComponent(message)}`;
-  };
-
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-      buildProjectImageUrl,
-      buildTelegramUrl,
-      calculateEstimate,
-      filterProjects,
-      formatPrice,
-      normalizeProjects,
-      projectsWord,
-    };
+    module.exports = { buildProjectImageUrl, formatPrice, formatPriceLabel, normalizeProjects, projectsWord };
   }
 
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
+  /* ---------- Маршрут ---------- */
+
+  const STAGES = [
+    { hash: 'start', label: 'Старт' },
+    { hash: 'about', label: '01 · Обо мне' },
+    { hash: 'works', label: '02 · Мои работы' },
+    { hash: 'price', label: '03 · Прайс' },
+    { hash: 'contacts', label: '04 · Контакты' },
+  ];
+  const LAST = STAGES.length - 1;
+  const INTRO_END = 7.45;
+  const PLATE_AR = 1672 / 941;
+  const WORKS_PREVIEW = 6;
+  const SEEN_KEY = 'spartak-drive-seen';
+
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+  const el = (tag, className, text) => {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+
+  const root = document.documentElement;
+  const app = $('#app');
+  const scene = $('#scene');
+  const video = $('#intro-video');
+  const plates = $$('.plate', scene);
+  const panels = $$('.panel', app);
+  const bloom = $('#bloom');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const mobileQuery = window.matchMedia('(max-width: 760px)');
+  const isMobile = () => mobileQuery.matches;
+  const lowPower = () => reducedMotion.matches || Boolean(navigator.connection && navigator.connection.saveData);
+
   const state = {
-    selected: new Set(),
-    brief: { businessType: '', contentStatus: '', timeline: '' },
+    stage: 0,
+    busy: false,
+    queued: null,
+    introPlaying: false,
+    introDone: false,
+    visited: new Set(),
+    lockUntil: 0,
+    projects: [],
+    showAllWorks: false,
+    projectIndex: -1,
+    lastFocus: null,
   };
 
-  const setText = (selector, value) => {
-    const element = document.querySelector(selector);
-    if (element) element.textContent = value;
-  };
+  const readSeen = () => { try { return localStorage.getItem(SEEN_KEY) === '1'; } catch (_) { return false; } };
+  const writeSeen = () => { try { localStorage.setItem(SEEN_KEY, '1'); } catch (_) { /* приватный режим */ } };
 
-  const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  /* ---------- Сцена: раскладка «слоёв» как object-fit: cover с точкой фокуса ---------- */
 
-  function runIntro() {
-    const intro = document.getElementById('intro');
-    if (!intro) return;
+  function layoutPlates() {
+    const rect = scene.getBoundingClientRect();
+    const cw = rect.width;
+    const ch = rect.height;
+    plates.forEach((plate) => {
+      const ar = Number(plate.dataset.ar) || PLATE_AR;
+      const w = Math.max(cw, ch * ar);
+      const h = w / ar;
+      const fx = Number(isMobile() ? plate.dataset.mfx : plate.dataset.fx) || 0.5;
+      const left = Math.min(0, Math.max(cw - w, cw / 2 - fx * w));
+      const top = Math.min(0, Math.max(ch - h, ch / 2 - 0.5 * h));
+      Object.assign(plate.style, { width: `${w}px`, height: `${h}px`, left: `${left}px`, top: `${top}px` });
+      plate.style.setProperty('--gx', `${Number(plate.dataset.gx) * 100}%`);
+      plate.style.setProperty('--gy', `${Number(plate.dataset.gy) * 100}%`);
+      const img = $('img:not(.plate__fallback)', plate);
+      if (img) img.sizes = `${Math.round(w)}px`;
+    });
+    drawFrame();
+  }
 
-    let alreadyShown = false;
-    try { alreadyShown = sessionStorage.getItem('spartak-intro-v2-seen') === '1'; } catch (_) { alreadyShown = false; }
-    const skip = alreadyShown || reducedMotionQuery.matches;
-    const gsap = window.gsap;
-    let finished = false;
-    let finishTimer = 0;
-    const finish = () => {
-      if (finished) return;
-      finished = true;
-      window.clearTimeout(finishTimer);
-      intro.classList.add('is-done');
-      document.body.classList.remove('intro-active');
-      document.documentElement.classList.remove('intro-pending');
-      window.clearTimeout(window.__introFallback);
-      try { sessionStorage.setItem('spartak-intro-v2-seen', '1'); } catch (_) { /* Storage can be unavailable. */ }
-      revealHero(skip);
+  function gatePoint(plate) {
+    const box = plate.getBoundingClientRect();
+    const host = scene.getBoundingClientRect();
+    return {
+      x: box.left - host.left + box.width * Number(plate.dataset.gx),
+      y: box.top - host.top + box.height * Number(plate.dataset.gy),
     };
-    finishTimer = window.setTimeout(finish, 3000);
+  }
 
-    if (gsap) {
-      const word = intro.querySelector('.intro__word');
-      const mark = intro.querySelector('.intro__mark');
-      const flash = intro.querySelector('.intro__flash');
-      const line = intro.querySelector('.intro__line');
-      const leftPanel = intro.querySelector('.intro__panel--left');
-      const rightPanel = intro.querySelector('.intro__panel--right');
-      const timeline = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+  const plateLoads = new Map();
+  function ensurePlate(index) {
+    const plate = plates[index];
+    if (!plate || !plate.dataset.src) return Promise.resolve();
+    if (plateLoads.has(index)) return plateLoads.get(index);
+    const name = plate.dataset.src;
+    const img = new Image();
+    img.alt = '';
+    img.decoding = 'async';
+    img.srcset = `assets/drive/${name}-mobile.webp 1000w, assets/drive/${name}.webp 1672w`;
+    img.sizes = plate.style.width || '100vw';
+    img.src = `assets/drive/${name}.webp`;
+    plate.prepend(img);
+    const ready = (img.decode ? img.decode() : new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+    })).catch(() => plate.classList.add('is-broken'));
+    plateLoads.set(index, ready);
+    return ready;
+  }
 
-      intro.classList.add('is-gsap');
-      gsap.set(word, { autoAlpha: 0, y: 20 });
-      gsap.set(mark, { rotation: -120, scale: .6 });
-      gsap.set([flash, line], { autoAlpha: 0 });
-      timeline
-        .to(word, { autoAlpha: 1, y: 0, duration: .55 }, 0)
-        .to(mark, { rotation: 360, scale: 1, duration: .82, ease: 'back.out(1.4)' }, .06)
-        .to(word, { autoAlpha: 0, y: -12, duration: .22, ease: 'power2.in' }, 1.02)
-        .to(flash, { autoAlpha: .72, duration: .07, yoyo: true, repeat: 1, ease: 'none' }, 1.2)
-        .fromTo(line, { autoAlpha: 0, scaleY: 0, scaleX: 1 }, { autoAlpha: 1, scaleY: 1, duration: .22 }, 1.34)
-        .to(line, { scaleX: Math.max(600, window.innerWidth), duration: .32, ease: 'power4.in' }, 1.56)
-        .to(leftPanel, { xPercent: -101, duration: .72, ease: 'power4.inOut' }, 1.68)
-        .to(rightPanel, { xPercent: 101, duration: .72, ease: 'power4.inOut' }, 1.68)
-        .to(line, { autoAlpha: 0, duration: .18 }, 1.76)
-        .call(finish, [], 2.42);
+  const withTimeout = (promise, ms) => Promise.race([promise, new Promise((resolve) => setTimeout(resolve, ms))]);
 
-      if (skip) {
-        timeline.progress(1).pause();
-        finish();
-      } else {
-        document.body.classList.add('intro-active');
-        timeline.play(0);
-      }
-      return;
+  function drawFrame() {
+    const svg = $('.hud-frame');
+    const path = $('#hud-frame-path');
+    if (!svg || !path) return;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const a = W > 1100 ? 18 : 12;
+    const lw = Math.min(330, W * 0.28);
+    const ly = a + 58;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    path.setAttribute('d', [
+      `M ${a + 20} ${a} L ${a} ${a + 20} L ${a} ${H - a - 12} L ${a + 12} ${H - a}`,
+      `L ${W - a - 26} ${H - a} L ${W - a} ${H - a - 26} L ${W - a} ${a}`,
+      `L ${lw + ly - a} ${a} L ${lw} ${ly} L ${a + 14} ${ly}`,
+    ].join(' '));
+  }
+
+  /* ---------- Навигация и HUD ---------- */
+
+  function updateHud(target) {
+    const stage = target ?? state.stage;
+    app.dataset.stage = String(stage);
+    $$('#route-nav button').forEach((button) => {
+      const index = Number(button.dataset.go);
+      button.classList.toggle('is-active', index === stage);
+      button.classList.toggle('is-visited', state.visited.has(index));
+      if (index === stage) button.setAttribute('aria-current', 'step');
+      else button.removeAttribute('aria-current');
+    });
+    $('#prev-stage').disabled = stage === 0;
+    $('#next-stage').disabled = stage === LAST;
+    $('#progress-label').textContent = STAGES[stage].label;
+    $('#route-restart').hidden = !(state.visited.has(LAST) && stage !== 0);
+    $('#scroll-hint').hidden = stage === LAST || state.introPlaying;
+    root.classList.toggle('route-done', state.visited.has(LAST));
+  }
+
+  function setProgress(value, duration) {
+    const pct = `${(value / LAST) * 100}%`;
+    const fill = $('#progress-fill');
+    const car = $('#progress-car');
+    if (window.gsap && duration) {
+      gsap.to(fill, { width: pct, duration, ease: 'power2.inOut', overwrite: true });
+      gsap.to(car, { left: pct, duration, ease: 'power2.inOut', overwrite: true });
+    } else {
+      fill.style.width = pct;
+      car.style.left = pct;
     }
+  }
 
-    if (skip) {
+  function setPanelState(index, active) {
+    const panel = panels[index];
+    panel.classList.toggle('is-active', active);
+    panel.toggleAttribute('inert', !active);
+    panel.setAttribute('aria-hidden', String(!active));
+  }
+
+  function setPlateActive(index) {
+    plates.forEach((plate, i) => {
+      plate.classList.toggle('is-active', i === index);
+      if (i !== index && window.gsap) gsap.set(plate, { autoAlpha: 0, scale: 1, clearProps: 'filter' });
+    });
+    if (window.gsap) gsap.set(plates[index], { autoAlpha: 1, scale: 1 });
+  }
+
+  function syncHash(stage) {
+    const hash = stage === 0 ? '' : `#${STAGES[stage].hash}`;
+    if (location.hash !== hash) history.replaceState(null, '', `${location.pathname}${location.search}${hash}`);
+  }
+
+  async function goTo(target, options = {}) {
+    target = Math.max(0, Math.min(LAST, Number(target)));
+    if (state.busy) { state.queued = target; return; }
+    if (target === state.stage && !options.force) return;
+    if (state.introPlaying) stopIntro();
+    closeProject(true);
+
+    const from = state.stage;
+    const dir = target >= from ? 1 : -1;
+    const outPlate = plates[from];
+    const inPlate = plates[target];
+    const outPanel = panels[from];
+    const inPanel = panels[target];
+    state.busy = true;
+    state.stage = target;
+    state.visited.add(target);
+    if (target === 0 && !video.classList.contains('is-hidden')) {
+      try { video.pause(); video.currentTime = 0; } catch (_) { /* метаданные ещё не загружены */ }
+    }
+    updateHud(target);
+    syncHash(target);
+    ensurePlate(target + 1);
+
+    await withTimeout(ensurePlate(target), 1500);
+
+    const fast = reducedMotion.matches || !window.gsap;
+    const mobile = isMobile();
+    const total = fast ? 0.35 : (options.fromIntro ? 1.1 : (mobile ? 1.0 : 1.45));
+    setProgress(target, total);
+
+    const finish = () => {
+      setPlateActive(target);
+      setPanelState(from, from === target);
+      state.busy = false;
+      state.lockUntil = performance.now() + 380;
+      if (target === LAST) root.classList.add('route-done');
+      if (state.queued !== null) {
+        const next = state.queued;
+        state.queued = null;
+        if (next !== state.stage) goTo(next);
+      }
+    };
+
+    if (!window.gsap) {
+      setPanelState(target, true);
       finish();
       return;
     }
-    document.body.classList.add('intro-active');
-    intro.classList.add('is-running');
-    window.setTimeout(finish, 2700);
-  }
 
-  function revealHero(skip) {
-    if (!window.gsap || skip) return;
-    window.gsap.timeline({ defaults: { duration: .58, ease: 'power3.out' } })
-      .from('.eyebrow', { autoAlpha: 0, y: 18 })
-      .from('.hero h1', { autoAlpha: 0, y: 28 }, '-=.34')
-      .from('.hero__lead', { autoAlpha: 0, y: 22 }, '-=.36')
-      .from('.hero__actions', { autoAlpha: 0, y: 18 }, '-=.38')
-      .from('.hero__meta', { autoAlpha: 0, y: 14 }, '-=.4')
-      .from('.hero__visual', { autoAlpha: 0, x: 36, duration: .8 }, '-=.82');
-  }
-
-  const create = (tag, className, text) => {
-    const element = document.createElement(tag);
-    if (className) element.className = className;
-    if (text !== undefined) element.textContent = text;
-    return element;
-  };
-
-  function renderServices(services) {
-    const root = document.getElementById('services-list');
-    if (!root || !Array.isArray(services)) return;
-    root.replaceChildren(...services.map((service, index) => {
-      const card = create('article', 'service-card');
-      card.append(
-        create('span', 'service-card__number', String(index + 1).padStart(2, '0')),
-        create('h3', '', service.title),
-        create('p', '', service.description),
-      );
-      const list = create('ul', 'service-card__list');
-      list.append(...(service.items || []).map((item) => create('li', '', item)));
-      card.append(list);
-      return card;
-    }));
-  }
-
-  function createProjectCard(project) {
-    const url = safeLiveUrl(project.liveUrl);
-    const card = create(url ? 'a' : 'article', 'project-card');
-    if (url) {
-      card.href = url;
-      card.target = '_blank';
-      card.rel = 'noopener noreferrer';
-      card.setAttribute('aria-label', `${project.title} — ${project.category}, открыть сайт в новой вкладке`);
-    }
-
-    const visual = create('div', 'project-card__visual');
-    const placeholder = create('span', 'project-card__placeholder', project.title);
-    visual.append(placeholder);
-    const preview = project.previews?.desktop;
-    const imageUrl = preview?.webp || buildProjectImageUrl(project.imageUrl, location.origin);
-    if (imageUrl) {
-      const picture = document.createElement('picture');
-      if (preview?.avif) {
-        const source = document.createElement('source');
-        source.type = 'image/avif';
-        source.srcset = preview.avif;
-        picture.append(source);
-      }
-      const image = document.createElement('img');
-      image.src = imageUrl;
-      image.alt = '';
-      image.loading = 'lazy';
-      image.decoding = 'async';
-      image.width = 640;
-      image.height = 400;
-      image.addEventListener('load', () => { placeholder.hidden = true; });
-      image.addEventListener('error', () => {
-        const fallback = buildProjectImageUrl(legacyProjectImages.get(String(project.id)), location.origin);
-        if (fallback && image.src !== fallback) image.src = fallback;
-        else picture.remove();
-      });
-      picture.append(image);
-      visual.append(picture);
-    }
-
-    const info = create('div', 'project-card__info');
-    const text = create('div', 'project-card__text');
-    text.append(create('small', '', project.category), create('h3', '', project.title));
-    info.append(text);
-    if (url) {
-      const host = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (_) { return ''; } })();
-      info.append(create('span', 'project-card__host', `${host} ↗`));
-    }
-    card.append(visual, info);
-    return card;
-  }
-
-  function setupProjects(projects) {
-    const root = document.getElementById('projects-root');
-    const search = document.getElementById('works-search');
-    const more = document.getElementById('works-more');
-    const count = document.getElementById('works-count');
-    if (!root) return;
-
-    const total = projects.length;
-    if (total) {
-      setText('#proof-text', '');
-      const proof = document.getElementById('proof-text');
-      if (proof) {
-        proof.append(create('strong', '', `${total} ${projectsWord(total)}`), ' в портфолио — сайты для разных ниш. Новые работы добавляются регулярно.');
-      }
-    }
-
-    if (!total) {
-      root.innerHTML = '<div class="empty-state"><h3>Новые проекты скоро появятся</h3><p>Можно обсудить ваш проект уже сегодня.</p><a class="button button--primary" href="#contacts">Связаться</a></div>';
-      if (search) search.closest('.works-toolbar').hidden = true;
+    if (fast) {
+      setPanelState(target, true);
+      gsap.set(inPlate, { autoAlpha: 0, scale: 1 });
+      gsap.timeline({ onComplete: finish })
+        .to(outPanel, { autoAlpha: 0, duration: 0.2 }, 0)
+        .to(inPlate, { autoAlpha: 1, duration: total }, 0)
+        .fromTo(inPanel, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, 0.05);
       return;
     }
 
-    const grid = create('div', 'projects-grid');
-    root.replaceChildren(grid);
-    let visible = PAGE_SIZE;
-    let filtered = projects;
+    const origin = gatePoint(dir > 0 ? outPlate : inPlate);
+    const outBox = outPlate.getBoundingClientRect();
+    const inBox = inPlate.getBoundingClientRect();
+    const originOut = `${origin.x - outBox.left + scene.getBoundingClientRect().left}px ${origin.y - outBox.top + scene.getBoundingClientRect().top}px`;
+    const inGate = gatePoint(inPlate);
+    const originIn = `${inGate.x - inBox.left + scene.getBoundingClientRect().left}px ${inGate.y - inBox.top + scene.getBoundingClientRect().top}px`;
+    bloom.style.setProperty('--bx', `${origin.x}px`);
+    bloom.style.setProperty('--by', `${origin.y}px`);
+    bloom.classList.toggle('bloom--final', target === LAST);
 
-    const render = () => {
-      const shown = filtered.slice(0, visible);
-      grid.replaceChildren(...shown.map(createProjectCard));
-      if (!filtered.length) grid.append(create('p', 'projects-grid__empty', 'Ничего не найдено. Попробуйте другое слово.'));
-      if (more) {
-        const rest = filtered.length - shown.length;
-        more.hidden = rest <= 0;
-        more.textContent = `Показать ещё ${Math.min(rest, PAGE_SIZE)} из ${rest}`;
+    const children = $$(':scope > *', inPanel);
+    const shift = mobile ? { x: 28 * dir, y: 0 } : { x: 0, y: 18 };
+    const tl = gsap.timeline({ onComplete: finish, defaults: { ease: 'power2.inOut' } });
+
+    tl.to(outPanel, { autoAlpha: 0, x: -shift.x * 0.6, y: -shift.y * 0.4, duration: 0.32, ease: 'power2.in' }, 0);
+    gsap.set(inPlate, { autoAlpha: 0, scale: dir > 0 ? 1.07 : 0.97, transformOrigin: originIn });
+    gsap.set(outPlate, { transformOrigin: originOut });
+
+    if (options.fromIntro) {
+      tl.to(bloom, { opacity: 0.95, duration: 0.28, ease: 'power1.in' }, 0)
+        .set(inPlate, { autoAlpha: 1 }, 0.3)
+        .set(outPlate, { autoAlpha: 0 }, 0.3)
+        .to(inPlate, { scale: 1, duration: 0.9, ease: 'power3.out' }, 0.3)
+        .to(bloom, { opacity: 0, duration: 0.75, ease: 'power2.out' }, 0.32);
+    } else {
+      tl.to(outPlate, { scale: dir > 0 ? 1.16 : 0.95, duration: total * 0.62, ease: 'power2.in' }, 0)
+        .to(bloom, { opacity: 0.82, duration: total * 0.4, ease: 'power1.in' }, total * 0.1)
+        .to(inPlate, { autoAlpha: 1, duration: total * 0.2, ease: 'none' }, total * 0.44)
+        .to(outPlate, { autoAlpha: 0, duration: total * 0.16, ease: 'none' }, total * 0.5)
+        .to(inPlate, { scale: 1, duration: total * 0.55, ease: 'power3.out' }, total * 0.46)
+        .to(bloom, { opacity: 0, duration: total * 0.45, ease: 'power2.out' }, total * 0.55);
+      if (!mobile) {
+        tl.fromTo(outPlate, { filter: 'blur(0px)' }, { filter: 'blur(3px)', duration: total * 0.5, ease: 'power1.in' }, total * 0.1);
       }
-      if (count) {
-        count.textContent = filtered.length === total
-          ? `${total} ${projectsWord(total)}`
-          : `Найдено: ${filtered.length} из ${total}`;
-      }
-    };
-
-    more?.addEventListener('click', () => {
-      const firstNew = visible;
-      visible += PAGE_SIZE;
-      render();
-      grid.children[firstNew]?.focus?.();
-    });
-
-    let searchTimer = 0;
-    search?.addEventListener('input', () => {
-      window.clearTimeout(searchTimer);
-      searchTimer = window.setTimeout(() => {
-        filtered = filterProjects(projects, search.value);
-        visible = PAGE_SIZE;
-        render();
-      }, 120);
-    });
-
-    render();
-  }
-
-  function renderPricing(content) {
-    const { pricing, owner } = content;
-    setText('#base-price', `от ${formatPrice(pricing.base.price)}`);
-    setText('#calculator-base-price', formatPrice(pricing.base.price));
-
-    const includedRoot = document.getElementById('included-list');
-    if (includedRoot) includedRoot.replaceChildren(...pricing.base.included.map((text) => create('li', '', text)));
-
-    const extrasRoot = document.getElementById('extras-list');
-    if (extrasRoot) {
-      extrasRoot.replaceChildren(...pricing.extras.map((service) => {
-        const label = create('label', 'service-option');
-        label.innerHTML = `
-          <input type="checkbox" name="service" value="${service.key}" />
-          <span class="service-option__check" aria-hidden="true">✓</span>
-          <span class="service-option__copy"><strong></strong><small></small></span>
-          <span class="service-option__price"></span>`;
-        label.querySelector('strong').textContent = service.title;
-        label.querySelector('small').textContent = service.description;
-        label.querySelector('.service-option__price').textContent = `${service.isFrom ? 'от ' : ''}${formatPrice(service.price)}`;
-        label.querySelector('input').addEventListener('change', (event) => {
-          if (event.currentTarget.checked) state.selected.add(service.key);
-          else state.selected.delete(service.key);
-          updateEstimate(owner, pricing);
-        });
-        return label;
-      }));
     }
 
-    ['businessType', 'contentStatus', 'timeline'].forEach((name) => {
-      const field = document.querySelector(`[name="${name}"]`);
-      field?.addEventListener('change', (event) => {
-        state.brief[name] = event.currentTarget.value;
-        updateEstimate(owner, pricing);
-      });
-    });
-
-    updateEstimate(owner, pricing);
+    const panelAt = options.fromIntro ? 0.55 : total * 0.68;
+    tl.call(() => setPanelState(target, true), null, panelAt)
+      .fromTo(inPanel, { autoAlpha: 0, x: shift.x, y: shift.y }, { autoAlpha: 1, x: 0, y: 0, duration: 0.5, ease: 'power3.out' }, panelAt)
+      .fromTo(children, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.42, stagger: 0.045, ease: 'power2.out', clearProps: 'transform,opacity,visibility' }, panelAt + 0.06);
   }
 
-  function updateEstimate(owner, pricing) {
-    const selectedKeys = Array.from(state.selected);
-    const estimate = calculateEstimate(pricing, selectedKeys);
-    const lines = document.getElementById('estimate-lines');
-    if (lines) {
-      lines.replaceChildren(...[pricing.base, ...estimate.selected].map((item) => {
-        const row = create('div', 'estimate__line');
-        row.append(create('span', '', item.title), create('span', '', `${item.isFrom ? 'от ' : ''}${formatPrice(item.price)}`));
+  const step = (delta) => goTo(state.stage + delta);
+
+  /* ---------- Вступление: видео A ---------- */
+
+  function chooseVideoSource() {
+    const small = Math.min(window.screen.width, window.screen.height) <= 760;
+    video.src = small ? 'assets/drive/intro-mobile.mp4' : 'assets/drive/intro.mp4';
+    video.preload = lowPower() ? 'metadata' : 'auto';
+  }
+
+  function useVideoFallback() {
+    video.classList.add('is-hidden');
+    plates[0].classList.add('is-fallback');
+    if (state.introPlaying) finishIntro();
+  }
+
+  let introFrame = 0;
+  function watchIntro() {
+    if (!state.introPlaying) return;
+    const t = video.currentTime || 0;
+    setProgress(Math.min(1, t / (INTRO_END + 0.2)) * 0.98);
+    if (t >= INTRO_END) { finishIntro(); return; }
+    introFrame = requestAnimationFrame(watchIntro);
+  }
+
+  async function playIntro() {
+    if (video.classList.contains('is-hidden') || reducedMotion.matches) { goTo(1); return; }
+    state.introPlaying = true;
+    root.classList.add('intro-playing');
+    $('#skip-intro').hidden = false;
+    updateHud(0);
+    try {
+      if (video.currentTime > 0.05) video.currentTime = 0;
+      await video.play();
+      introFrame = requestAnimationFrame(watchIntro);
+    } catch (_) {
+      stopIntro();
+    }
+  }
+
+  function stopIntro() {
+    state.introPlaying = false;
+    cancelAnimationFrame(introFrame);
+    root.classList.remove('intro-playing');
+    $('#skip-intro').hidden = true;
+    state.introDone = true;
+    writeSeen();
+    updateHud();
+  }
+
+  function finishIntro() {
+    if (!state.introPlaying) return;
+    const playedToGate = (video.currentTime || 0) >= INTRO_END - 0.4;
+    stopIntro();
+    goTo(1, { fromIntro: playedToGate });
+  }
+
+  /* ---------- Ввод: колесо, клавиатура, касания ---------- */
+
+  function canScroll(target, dy) {
+    let node = target instanceof Element ? target : null;
+    while (node && node !== app) {
+      if (node.scrollHeight > node.clientHeight + 1) {
+        const style = getComputedStyle(node);
+        if (/(auto|scroll)/.test(style.overflowY)) {
+          if (dy > 0 && node.scrollTop + node.clientHeight < node.scrollHeight - 1) return true;
+          if (dy < 0 && node.scrollTop > 0) return true;
+        }
+      }
+      node = node.parentElement;
+    }
+    return false;
+  }
+
+  let wheelSum = 0;
+  let wheelTimer = 0;
+  function onWheel(event) {
+    if (!$('#project-modal').hidden) return;
+    if (Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
+    if (canScroll(event.target, event.deltaY)) return;
+    event.preventDefault();
+    const now = performance.now();
+    if (state.busy || now < state.lockUntil) {
+      state.lockUntil = Math.max(state.lockUntil, now + 140);
+      wheelSum = 0;
+      return;
+    }
+    wheelSum += event.deltaMode === 1 ? event.deltaY * 30 : event.deltaY;
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(() => { wheelSum = 0; }, 180);
+    if (Math.abs(wheelSum) < 36) return;
+    const dir = Math.sign(wheelSum);
+    wheelSum = 0;
+    if (state.introPlaying && dir > 0) { finishIntro(); return; }
+    step(dir);
+  }
+
+  function onKey(event) {
+    if (!$('#project-modal').hidden) {
+      if (event.key === 'Escape') closeProject();
+      if (event.key === 'ArrowRight') shiftProject(1);
+      if (event.key === 'ArrowLeft') shiftProject(-1);
+      if (event.key === 'Tab') trapFocus(event);
+      return;
+    }
+    const tag = event.target.tagName;
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+    const interactive = ['BUTTON', 'A'].includes(tag) || event.target.getAttribute('role') === 'tab';
+    const forward = ['ArrowDown', 'PageDown'].includes(event.key) || (event.key === ' ' && !interactive);
+    const back = ['ArrowUp', 'PageUp'].includes(event.key);
+    if (!forward && !back && event.key !== 'Home' && event.key !== 'End') return;
+    if (canScroll(event.target, forward ? 1 : -1) && event.target !== document.body) return;
+    event.preventDefault();
+    if (event.key === 'Home') goTo(0);
+    else if (event.key === 'End') goTo(LAST);
+    else if (state.introPlaying && forward) finishIntro();
+    else step(forward ? 1 : -1);
+  }
+
+  let touch = null;
+  function onTouchStart(event) {
+    if (event.touches.length !== 1 || !$('#project-modal').hidden) { touch = null; return; }
+    const point = event.touches[0];
+    touch = { x: point.clientX, y: point.clientY, t: performance.now(), target: event.target };
+  }
+
+  function onTouchEnd(event) {
+    if (!touch) return;
+    const point = event.changedTouches[0];
+    const dx = point.clientX - touch.x;
+    const dy = point.clientY - touch.y;
+    const quick = performance.now() - touch.t < 700;
+    const start = touch;
+    touch = null;
+    if (!quick || state.busy) return;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (start.target.closest('.price-tabs, .route-nav')) return;
+      step(dx < 0 ? 1 : -1);
+      return;
+    }
+    if (Math.abs(dy) > 64 && Math.abs(dy) > Math.abs(dx) * 1.4) {
+      const dir = dy < 0 ? 1 : -1;
+      if (start.target.closest('.panel') && (isMobile() || canScroll(start.target, dir))) return;
+      if (state.introPlaying && dir > 0) { finishIntro(); return; }
+      step(dir);
+    }
+  }
+
+  /* ---------- Контент ---------- */
+
+  function renderAbout(content) {
+    const about = content.about || {};
+    const copy = $('#about-copy');
+    copy.replaceChildren(
+      el('p', 'about__lead', about.lead || ''),
+      ...(about.text || []).map((text) => el('p', '', text)),
+    );
+    if (content.owner && content.owner.photo) $('#about-photo').src = content.owner.photo;
+    const list = $('#about-directions');
+    const note = $('#about-direction-note');
+    const directions = about.directions || [];
+    list.replaceChildren(...directions.map((direction, index) => {
+      const item = el('div', 'chips__item');
+      item.setAttribute('role', 'listitem');
+      const button = el('button', 'chip', direction.title);
+      button.type = 'button';
+      button.setAttribute('aria-pressed', String(index === 0));
+      button.addEventListener('click', () => {
+        $$('.chip', list).forEach((chip) => chip.setAttribute('aria-pressed', String(chip === button)));
+        note.textContent = direction.text;
+      });
+      item.append(button);
+      return item;
+    }));
+    note.textContent = directions[0] ? directions[0].text : '';
+  }
+
+  function projectPicture(project, variant, eager) {
+    const picture = el('picture');
+    const previews = project.previews && project.previews.desktop;
+    const img = el('img');
+    img.alt = variant === 'card' ? '' : `Скриншот проекта ${project.title}`;
+    img.decoding = 'async';
+    img.loading = eager ? 'eager' : 'lazy';
+    if (previews) {
+      const avif = el('source');
+      avif.type = 'image/avif';
+      avif.srcset = previews.avif;
+      picture.append(avif);
+      img.src = previews.webp;
+    } else {
+      img.src = buildProjectImageUrl(project.imageUrl, location.origin);
+    }
+    img.addEventListener('error', () => picture.classList.add('is-broken'), { once: true });
+    picture.append(img);
+    return picture;
+  }
+
+  function renderWorks() {
+    const grid = $('#works-grid');
+    const projects = state.projects;
+    const visible = state.showAllWorks ? projects : projects.slice(0, WORKS_PREVIEW);
+    $('#works-count').textContent = projects.length
+      ? `${projects.length} ${projectsWord(projects.length)} — нажмите, чтобы открыть`
+      : 'Проекты скоро появятся';
+    grid.replaceChildren(...visible.map((project, index) => {
+      const item = el('div', 'works__item');
+      item.setAttribute('role', 'listitem');
+      item.style.setProperty('--i', String(index % WORKS_PREVIEW));
+      const card = el('button', 'work-card');
+      card.type = 'button';
+      card.setAttribute('aria-label', `${project.title} — подробнее о проекте`);
+      const meta = el('span', 'work-card__meta');
+      meta.append(el('strong', '', project.title), el('small', '', [project.type, project.category].filter(Boolean).join(' · ')));
+      const arrow = el('span', 'work-card__arrow');
+      arrow.setAttribute('aria-hidden', 'true');
+      arrow.textContent = '↗';
+      card.append(projectPicture(project, 'card'), meta, arrow);
+      card.addEventListener('click', () => openProject(index));
+      item.append(card);
+      return item;
+    }));
+    const more = $('#works-more');
+    more.hidden = projects.length <= WORKS_PREVIEW;
+    more.firstChild.textContent = state.showAllWorks ? 'Свернуть список ' : `Смотреть все проекты (${projects.length}) `;
+    more.lastElementChild.textContent = state.showAllWorks ? '↑' : '→';
+  }
+
+  function renderPrice(pricing) {
+    const tabs = $('#price-tabs');
+    const list = $('#price-list');
+    const categories = (pricing && pricing.categories) || [];
+    $('#price-note').textContent = (pricing && pricing.note) || '';
+    const select = (index, focus) => {
+      $$('[role="tab"]', tabs).forEach((tab, i) => {
+        tab.setAttribute('aria-selected', String(i === index));
+        tab.tabIndex = i === index ? 0 : -1;
+        if (i === index && focus) tab.focus();
+      });
+      const category = categories[index];
+      list.setAttribute('aria-labelledby', `price-tab-${category.key}`);
+      list.replaceChildren(...category.items.map((item, i) => {
+        const row = el('div', 'price-row');
+        row.style.setProperty('--i', String(i));
+        const label = el('span', 'price-row__title', item.title);
+        const value = el('span', 'price-row__value', formatPriceLabel(item));
+        if (item.price === null || item.price === undefined) value.classList.add('is-muted');
+        row.append(el('span', 'price-row__mark', category.mark || '/'), label, el('span', 'price-row__line'), value);
         return row;
       }));
-    }
-    const totalLabel = `${estimate.isFrom ? 'от ' : ''}${formatPrice(estimate.total)}`;
-    setText('#estimate-total', totalLabel);
-    setText('#mobile-estimate-total', totalLabel);
-
-    const url = buildTelegramUrl(owner.telegramUsername, pricing, selectedKeys, state.brief);
-    ['telegram-order', 'mobile-telegram-order'].forEach((id) => {
-      const orderLink = document.getElementById(id);
-      if (orderLink && url) orderLink.href = url;
-    });
+    };
+    tabs.replaceChildren(...categories.map((category, index) => {
+      const tab = el('button', 'price-tab');
+      tab.type = 'button';
+      tab.id = `price-tab-${category.key}`;
+      tab.setAttribute('role', 'tab');
+      tab.append(el('span', 'price-tab__mark', category.mark || '/'), el('span', '', category.title));
+      tab.addEventListener('click', () => select(index));
+      tab.addEventListener('keydown', (event) => {
+        if (!['ArrowRight', 'ArrowLeft'].includes(event.key)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        select((index + (event.key === 'ArrowRight' ? 1 : -1) + categories.length) % categories.length, true);
+      });
+      return tab;
+    }));
+    if (categories.length) select(0);
   }
 
-  function setupNavigation() {
-    const header = document.getElementById('site-header');
-    const menu = document.querySelector('.menu-button');
-    const nav = document.getElementById('site-nav');
-    const links = Array.from(document.querySelectorAll('.site-nav a'));
-    const mobileNavigationQuery = window.matchMedia('(max-width: 760px)');
+  const ICONS = {
+    telegram: 'M21 4L3 11l6 2.5M21 4l-4 16-8-6.5M21 4L9 13.5V19l3-3.2',
+    channel: 'M4 9v6h3l6 4V5L7 9H4zm13-1a5 5 0 010 8',
+    phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2',
+    mail: 'M3 6h18v12H3zM3 7l9 6 9-6',
+    link: 'M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1',
+  };
 
-    const syncHeader = () => header?.classList.toggle('is-scrolled', window.scrollY > 18);
-    syncHeader();
-    window.addEventListener('scroll', syncHeader, { passive: true });
+  function svgIcon(name) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', ICONS[name] || ICONS.link);
+    svg.append(path);
+    return svg;
+  }
 
-    const setMenuOpen = (open) => {
-      const expanded = mobileNavigationQuery.matches && open;
-      menu?.setAttribute('aria-expanded', String(expanded));
-      menu?.setAttribute('aria-label', expanded ? 'Закрыть меню' : 'Открыть меню');
-      nav?.classList.toggle('is-open', expanded);
-      if (nav) nav.inert = mobileNavigationQuery.matches && !expanded;
+  function renderContacts(contacts) {
+    if (!contacts) return;
+    $('#contacts-cta').textContent = contacts.cta || '';
+    $('#contacts-subtitle').textContent = contacts.subtitle || '';
+    const primary = $('#contacts-primary');
+    const primaryUrl = contacts.primary && safeUrl(contacts.primary.url);
+    if (primaryUrl) {
+      primary.href = primaryUrl;
+      primary.querySelector('span').textContent = contacts.primary.label;
+    }
+    $('#contacts-list').replaceChildren(...(contacts.items || []).filter((item) => safeUrl(item.url)).map((item) => {
+      const li = el('li');
+      const link = el('a', 'contact');
+      link.href = safeUrl(item.url);
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      const icon = el('span', 'contact__icon');
+      icon.append(svgIcon(item.icon));
+      const text = el('span', 'contact__text');
+      text.append(el('small', '', item.label), el('span', '', item.value));
+      const arrow = el('span', 'contact__arrow', '↗');
+      arrow.setAttribute('aria-hidden', 'true');
+      link.append(icon, text, arrow);
+      li.append(link);
+      return li;
+    }));
+  }
+
+  /* ---------- Подробности проекта ---------- */
+
+  function detailSection(title, body) {
+    const section = el('section', 'project-section');
+    section.append(el('h4', '', title), body);
+    return section;
+  }
+
+  function fillProject(index) {
+    const project = state.projects[index];
+    if (!project) return;
+    state.projectIndex = index;
+    const details = project.details || {};
+    $('#project-meta').textContent = [project.type, project.category].filter(Boolean).join(' · ');
+    $('#project-title').textContent = project.title;
+    $('#project-media').replaceChildren(projectPicture(project, 'detail', true));
+    const sections = [];
+    if (project.description) sections.push(el('p', 'project-lead', project.description));
+    if (details.task) sections.push(detailSection('Задача', el('p', '', details.task)));
+    if (Array.isArray(details.done) && details.done.length) {
+      const list = el('ul', 'project-list');
+      details.done.forEach((item) => list.append(el('li', '', item)));
+      sections.push(detailSection('Что реализовано', list));
+    }
+    if (Array.isArray(details.tech) && details.tech.length) {
+      const tags = el('div', 'project-tags');
+      details.tech.forEach((item) => tags.append(el('span', '', item)));
+      sections.push(detailSection('Технологии', tags));
+    }
+    if (details.result) sections.push(detailSection('Результат', el('p', '', details.result)));
+    if (!sections.length) sections.push(el('p', 'project-lead is-muted', 'Подробное описание задачи и результата скоро появится. Проект можно посмотреть вживую по ссылке ниже.'));
+    $('#project-details').replaceChildren(...sections);
+    const link = $('#project-link');
+    const live = safeUrl(project.liveUrl);
+    link.hidden = !live;
+    if (live) link.href = live;
+    $('#project-index').textContent = `${index + 1} / ${state.projects.length}`;
+  }
+
+  function openProject(index) {
+    const modal = $('#project-modal');
+    state.lastFocus = document.activeElement;
+    fillProject(index);
+    modal.hidden = false;
+    root.classList.add('modal-open');
+    const card = $('.project-modal__card', modal);
+    if (window.gsap && !reducedMotion.matches) {
+      gsap.fromTo($('.project-modal__backdrop', modal), { opacity: 0 }, { opacity: 1, duration: 0.35 });
+      gsap.fromTo(card, { opacity: 0, y: 24, scale: 0.98 }, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'power3.out' });
+    }
+    card.focus();
+  }
+
+  function closeProject(instant) {
+    const modal = $('#project-modal');
+    if (modal.hidden) return;
+    const done = () => {
+      modal.hidden = true;
+      root.classList.remove('modal-open');
+      if (state.lastFocus && document.contains(state.lastFocus)) state.lastFocus.focus();
     };
-    setMenuOpen(false);
-    menu?.addEventListener('click', () => setMenuOpen(menu.getAttribute('aria-expanded') !== 'true'));
-    links.forEach((link) => link.addEventListener('click', () => setMenuOpen(false)));
-    mobileNavigationQuery.addEventListener('change', () => setMenuOpen(false));
-    document.addEventListener('keydown', (event) => {
-      if (event.key !== 'Escape' || menu?.getAttribute('aria-expanded') !== 'true') return;
-      setMenuOpen(false);
-      menu.focus();
-    });
+    if (instant === true || !window.gsap || reducedMotion.matches) { done(); return; }
+    gsap.to($('.project-modal__backdrop', modal), { opacity: 0, duration: 0.25 });
+    gsap.to($('.project-modal__card', modal), { opacity: 0, y: 16, duration: 0.25, ease: 'power2.in', onComplete: done });
+  }
 
-    const sections = links.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
-    const observer = new IntersectionObserver((entries) => {
-      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-      if (!visible) return;
-      links.forEach((link) => link.classList.toggle('is-active', link.getAttribute('href') === `#${visible.target.id}`));
-    }, { rootMargin: '-25% 0px -60%', threshold: [0, .2, .5] });
-    sections.forEach((section) => observer.observe(section));
+  function shiftProject(delta) {
+    const count = state.projects.length;
+    if (!count) return;
+    const next = (state.projectIndex + delta + count) % count;
+    fillProject(next);
+    const card = $('.project-modal__body');
+    if (window.gsap && !reducedMotion.matches) gsap.fromTo([card, '#project-media'], { opacity: 0.2 }, { opacity: 1, duration: 0.35 });
+  }
+
+  function trapFocus(event) {
+    const focusable = $$('#project-modal button, #project-modal a[href]:not([hidden])').filter((node) => !node.hidden && node.offsetParent !== null);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === $('.project-modal__card'))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   async function loadContent() {
+    const response = await fetch('./content/site.json', { cache: 'no-cache' });
+    if (!response.ok) throw new Error(`Content request failed: ${response.status}`);
+    const content = await response.json();
+    let projects = content.projects || [];
     try {
-      const response = await fetch('./content/site.json', { cache: 'no-store' });
-      if (!response.ok) throw new Error(`Content request failed: ${response.status}`);
-      const content = await response.json();
-      let projects = content.projects;
-      try {
-        const projectsResponse = await fetch('/api/projects', { cache: 'no-store' });
-        if (!projectsResponse.ok) throw new Error(`Projects request failed: ${projectsResponse.status}`);
-        const apiProjects = await projectsResponse.json();
-        if (Array.isArray(apiProjects)) {
-          const localProjects = new Map(content.projects.map((project) => [String(project.id), project]));
-          const merged = normalizeProjects(apiProjects).map((project) => ({
-            ...localProjects.get(String(project.id)),
-            ...project,
-          }));
-          const hostOf = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (_) { return ''; } };
-          const known = new Set(merged.flatMap((project) => [String(project.id), hostOf(project.liveUrl)]).filter(Boolean));
-          const localOnly = content.projects.filter((project) => !known.has(String(project.id)) && !known.has(hostOf(project.liveUrl)));
-          projects = [...merged, ...localOnly];
-        }
-      } catch (_) { /* Local preview and API failures use the JSON fallback. */ }
-      renderServices(content.services);
-      setupProjects(normalizeProjects(projects).filter((project) => project.published !== false));
-      renderPricing(content);
-    } catch (_) {
-      const projects = document.getElementById('projects-root');
-      if (projects) projects.innerHTML = '<div class="empty-state"><h3>Контент временно недоступен</h3><p>Напишите Спартаку в Telegram — связь работает.</p></div>';
-    }
+      const projectsResponse = await fetch('/api/projects', { cache: 'no-store' });
+      if (!projectsResponse.ok) throw new Error(`Projects request failed: ${projectsResponse.status}`);
+      const apiProjects = await projectsResponse.json();
+      if (Array.isArray(apiProjects)) {
+        const localProjects = new Map(projects.map((project) => [String(project.id), project]));
+        const merged = normalizeProjects(apiProjects).map((project) => ({ ...localProjects.get(String(project.id)), ...project }));
+        const hostOf = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (_) { return ''; } };
+        const known = new Set(merged.flatMap((project) => [String(project.id), hostOf(project.liveUrl)]).filter(Boolean));
+        const localOnly = projects.filter((project) => !known.has(String(project.id)) && !known.has(hostOf(project.liveUrl)));
+        projects = [...merged, ...localOnly];
+      }
+    } catch (_) { /* Локальный просмотр и сбои API используют site.json. */ }
+
+    state.projects = normalizeProjects(projects)
+      .filter((project) => project.published !== false)
+      .map((project) => ({ type: 'Сайт', ...project }));
+    renderAbout(content);
+    renderWorks();
+    renderPrice(content.pricing);
+    renderContacts(content.contacts);
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    setText('#year', new Date().getFullYear());
-    runIntro();
-    setupNavigation();
-    loadContent();
-  });
+  function showContentError() {
+    $('#about-copy').replaceChildren(el('p', '', 'Не удалось загрузить содержимое. Обновите страницу или напишите в Telegram: @Spartlak.'));
+    $('#works-grid').replaceChildren(el('p', 'panel__error', 'Список проектов временно недоступен.'));
+    $('#works-count').textContent = '';
+  }
+
+  /* ---------- Запуск ---------- */
+
+  function bindControls() {
+    document.addEventListener('click', (event) => {
+      const go = event.target.closest('[data-go]');
+      if (go) {
+        event.preventDefault();
+        const target = Number(go.dataset.go);
+        if (target === 1 && state.stage === 0 && !state.introDone && !state.introPlaying && !lowPower()) playIntro();
+        else goTo(target);
+        return;
+      }
+      if (event.target.closest('[data-close-project]')) closeProject();
+    });
+    $('#prev-stage').addEventListener('click', () => step(-1));
+    $('#next-stage').addEventListener('click', () => (state.introPlaying ? finishIntro() : step(1)));
+    $('#skip-intro').addEventListener('click', finishIntro);
+    $('#route-restart').addEventListener('click', () => goTo(0));
+    $('#project-prev').addEventListener('click', () => shiftProject(-1));
+    $('#project-next').addEventListener('click', () => shiftProject(1));
+    $('#works-more').addEventListener('click', () => {
+      state.showAllWorks = !state.showAllWorks;
+      renderWorks();
+      if (!state.showAllWorks) panels[2].scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    window.addEventListener('wheel', onWheel, { passive: false });
+    window.addEventListener('keydown', onKey);
+    app.addEventListener('touchstart', onTouchStart, { passive: true });
+    app.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('hashchange', () => {
+      const index = STAGES.findIndex((stage) => `#${stage.hash}` === location.hash);
+      if (index > 0 && index !== state.stage) goTo(index);
+    });
+    let resizeFrame = 0;
+    window.addEventListener('resize', () => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(layoutPlates);
+    });
+    mobileQuery.addEventListener('change', layoutPlates);
+    video.addEventListener('error', useVideoFallback);
+    video.addEventListener('ended', finishIntro);
+  }
+
+  function runLoader(tasks) {
+    const bar = $('#loader-bar');
+    let done = 0;
+    const tick = () => { done += 1; bar.style.width = `${(done / tasks.length) * 100}%`; };
+    const all = Promise.all(tasks.map((task) => Promise.resolve(task).catch(() => null).then(tick)));
+    const minimum = new Promise((resolve) => setTimeout(resolve, 650));
+    return Promise.all([withTimeout(all, 4500), minimum]);
+  }
+
+  function videoReady() {
+    if (lowPower()) return Promise.resolve();
+    return new Promise((resolve) => {
+      if (video.readyState >= 3) { resolve(); return; }
+      video.addEventListener('canplaythrough', resolve, { once: true });
+      video.addEventListener('error', resolve, { once: true });
+    });
+  }
+
+  async function init() {
+    panels.forEach((_, index) => setPanelState(index, index === 0));
+    plates[0].classList.add('is-active');
+    layoutPlates();
+    bindControls();
+    chooseVideoSource();
+
+    const startIndex = Math.max(0, STAGES.findIndex((stage) => `#${stage.hash}` === location.hash));
+    const content = loadContent().catch(showContentError);
+    const poster = new Image();
+    poster.src = 'assets/drive/intro-poster.webp';
+    const tasks = [
+      content,
+      document.fonts ? document.fonts.ready : null,
+      poster.decode ? poster.decode() : null,
+      ensurePlate(startIndex || 1),
+    ];
+    if (!startIndex) tasks.push(videoReady());
+    await runLoader(tasks);
+
+    if (startIndex > 0) {
+      state.introDone = true;
+      state.stage = startIndex;
+      state.visited.add(startIndex);
+      setPanelState(0, false);
+      setPanelState(startIndex, true);
+      setProgress(startIndex);
+    } else {
+      setProgress(0);
+    }
+    updateHud();
+    setPlateActive(state.stage);
+
+    root.classList.remove('is-loading');
+    root.classList.add('is-ready');
+    $('#loader').setAttribute('aria-hidden', 'true');
+    ensurePlate(state.stage + 1);
+
+    const autoplay = !startIndex && !readSeen() && !lowPower() && !video.classList.contains('is-hidden');
+    if (autoplay) setTimeout(() => { if (state.stage === 0 && !state.busy) playIntro(); }, 900);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
 }());

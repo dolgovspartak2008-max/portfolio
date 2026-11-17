@@ -1,30 +1,11 @@
 {
   "owner": {
     "name": "Спартак",
-    "role": "Сайты, приложения и автоматизация для бизнеса",
-    "telegramUsername": "spartlak",
-    "telegramChannelUrl": "https://t.me/spartakchokaet"
+    "role": "Сайты, Telegram-боты, приложения и автоматизация для бизнеса",
+    "telegramUsername": "Spartlak",
+    "telegramChannelUrl": "https://t.me/spartakchokaet",
+    "photo": "./assets/portrait.jpg"
   },
-  "services": [
-    {
-      "key": "sites",
-      "title": "Сайты",
-      "description": "Лендинги, сайты компаний, каталоги и интернет-магазины. Адаптивная вёрстка, быстрая загрузка, домен и хостинг.",
-      "items": ["Лендинги под заявки", "Многостраничные сайты", "Каталоги и магазины", "Формы, квизы, калькуляторы"]
-    },
-    {
-      "key": "apps",
-      "title": "Приложения",
-      "description": "Веб-приложения и сервисы под ваши процессы: от личного кабинета клиента до внутренней системы для команды.",
-      "items": ["Веб-приложения и SaaS", "Личные кабинеты и админки", "CRM и учётные системы", "Mini Apps в Telegram"]
-    },
-    {
-      "key": "automation",
-      "title": "Автоматизация",
-      "description": "Беру любую повторяющуюся работу и передаю её программе: заявки, отчёты, таблицы, уведомления, обмен данными между сервисами.",
-      "items": ["Telegram-боты", "Интеграции CRM, таблиц и сервисов", "Парсинг и обработка данных", "Автоотчёты и рассылки"]
-    }
-  ],
   "projects": [
     {
       "id": 4,
@@ -35,8 +16,22 @@
       "sortOrder": 1,
       "published": true,
       "previews": {
-        "desktop": { "avif": "./assets/projects/previews/pulse-desktop.avif", "webp": "./assets/projects/previews/pulse-desktop.webp" },
-        "mobile": { "avif": "./assets/projects/previews/pulse-mobile.avif", "webp": "./assets/projects/previews/pulse-mobile.webp" }
+        "desktop": {
+          "avif": "./assets/projects/previews/pulse-desktop.avif",
+          "webp": "./assets/projects/previews/pulse-desktop.webp"
+        },
+        "mobile": {
+          "avif": "./assets/projects/previews/pulse-mobile.avif",
+          "webp": "./assets/projects/previews/pulse-mobile.webp"
+        }
+      },
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
       }
     },
     {
@@ -48,8 +43,22 @@
       "sortOrder": 2,
       "published": true,
       "previews": {
-        "desktop": { "avif": "./assets/projects/previews/blue-sea-desktop.avif", "webp": "./assets/projects/previews/blue-sea-desktop.webp" },
-        "mobile": { "avif": "./assets/projects/previews/blue-sea-mobile.avif", "webp": "./assets/projects/previews/blue-sea-mobile.webp" }
+        "desktop": {
+          "avif": "./assets/projects/previews/blue-sea-desktop.avif",
+          "webp": "./assets/projects/previews/blue-sea-desktop.webp"
+        },
+        "mobile": {
+          "avif": "./assets/projects/previews/blue-sea-mobile.avif",
+          "webp": "./assets/projects/previews/blue-sea-mobile.webp"
+        }
+      },
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
       }
     },
     {
@@ -61,8 +70,22 @@
       "sortOrder": 3,
       "published": true,
       "previews": {
-        "desktop": { "avif": "./assets/projects/previews/bravo-desktop.avif", "webp": "./assets/projects/previews/bravo-desktop.webp" },
-        "mobile": { "avif": "./assets/projects/previews/bravo-mobile.avif", "webp": "./assets/projects/previews/bravo-mobile.webp" }
+        "desktop": {
+          "avif": "./assets/projects/previews/bravo-desktop.avif",
+          "webp": "./assets/projects/previews/bravo-desktop.webp"
+        },
+        "mobile": {
+          "avif": "./assets/projects/previews/bravo-mobile.avif",
+          "webp": "./assets/projects/previews/bravo-mobile.webp"
+        }
+      },
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
       }
     },
     {
@@ -74,8 +97,22 @@
       "sortOrder": 4,
       "published": true,
       "previews": {
-        "desktop": { "avif": "./assets/projects/previews/steak-house-desktop.avif", "webp": "./assets/projects/previews/steak-house-desktop.webp" },
-        "mobile": { "avif": "./assets/projects/previews/steak-house-mobile.avif", "webp": "./assets/projects/previews/steak-house-mobile.webp" }
+        "desktop": {
+          "avif": "./assets/projects/previews/steak-house-desktop.avif",
+          "webp": "./assets/projects/previews/steak-house-desktop.webp"
+        },
+        "mobile": {
+          "avif": "./assets/projects/previews/steak-house-mobile.avif",
+          "webp": "./assets/projects/previews/steak-house-mobile.webp"
+        }
+      },
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
       }
     },
     {
@@ -87,8 +124,22 @@
       "sortOrder": 5,
       "published": true,
       "previews": {
-        "desktop": { "avif": "./assets/projects/previews/precision-auto-desktop.avif", "webp": "./assets/projects/previews/precision-auto-desktop.webp" },
-        "mobile": { "avif": "./assets/projects/previews/precision-auto-mobile.avif", "webp": "./assets/projects/previews/precision-auto-mobile.webp" }
+        "desktop": {
+          "avif": "./assets/projects/previews/precision-auto-desktop.avif",
+          "webp": "./assets/projects/previews/precision-auto-desktop.webp"
+        },
+        "mobile": {
+          "avif": "./assets/projects/previews/precision-auto-mobile.avif",
+          "webp": "./assets/projects/previews/precision-auto-mobile.webp"
+        }
+      },
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
       }
     },
     {
@@ -98,7 +149,15 @@
       "liveUrl": "https://www.asiatradecar.ru/",
       "imageUrl": "./assets/projects/asia-trade-car.webp",
       "sortOrder": 6,
-      "published": true
+      "published": true,
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
+      }
     },
     {
       "id": 10,
@@ -107,7 +166,15 @@
       "liveUrl": "https://bear-glade-19uk.vercel.app/",
       "imageUrl": "./assets/projects/bear-glade.webp",
       "sortOrder": 7,
-      "published": true
+      "published": true,
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
+      }
     },
     {
       "id": 11,
@@ -116,7 +183,15 @@
       "liveUrl": "https://www.fiziotera.online/",
       "imageUrl": "https://www.fiziotera.online/assets/img/og.jpg",
       "sortOrder": 8,
-      "published": true
+      "published": true,
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
+      }
     },
     {
       "id": 12,
@@ -125,53 +200,170 @@
       "liveUrl": "https://drgorshechnikov.ru",
       "imageUrl": "https://www.drgorshechnikov.ru/assets/img/og.jpg",
       "sortOrder": 9,
-      "published": true
+      "published": true,
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
+      }
     }
   ],
   "pricing": {
-    "base": {
-      "key": "base",
-      "title": "Базовая разработка лендинга",
-      "price": 9000,
-      "included": [
-        "До 6 смысловых секций",
-        "Адаптация под телефон, планшет и компьютер",
-        "Структура под задачи бизнеса",
-        "Дизайн и кнопки заявки на видных местах",
-        "Связь через Telegram",
-        "Базовая оптимизация скорости",
-        "Одна итерация правок",
-        "Публикация после согласования"
-      ]
+    "note": "Окончательная стоимость зависит от функционала и сложности проекта.",
+    "currency": "₽",
+    "categories": [
+      {
+        "key": "sites",
+        "mark": "/",
+        "title": "Сайты",
+        "items": [
+          {
+            "title": "Лендинг",
+            "price": 9000,
+            "isFrom": true
+          },
+          {
+            "title": "Многостраничный сайт",
+            "price": null,
+            "isFrom": true
+          },
+          {
+            "title": "Интернет-магазин",
+            "price": null,
+            "isFrom": true
+          }
+        ]
+      },
+      {
+        "key": "development",
+        "mark": "//",
+        "title": "Разработка",
+        "items": [
+          {
+            "title": "Telegram-бот",
+            "price": null,
+            "isFrom": true
+          },
+          {
+            "title": "Веб-приложение",
+            "price": null,
+            "isFrom": true
+          },
+          {
+            "title": "CRM-система",
+            "price": null,
+            "isFrom": true
+          }
+        ]
+      },
+      {
+        "key": "automation",
+        "mark": "///",
+        "title": "Автоматизация",
+        "items": [
+          {
+            "title": "Автоматизация бизнес-процессов",
+            "price": null,
+            "isFrom": true
+          },
+          {
+            "title": "Интеграция сервисов",
+            "price": null,
+            "isFrom": true
+          },
+          {
+            "title": "Индивидуальное решение",
+            "price": null,
+            "isFrom": true
+          }
+        ]
+      },
+      {
+        "key": "extras",
+        "mark": "+",
+        "title": "Дополнительно",
+        "items": [
+          {
+            "title": "Подключение домена",
+            "price": 500,
+            "isFrom": false
+          },
+          {
+            "title": "Подключение хостинга",
+            "price": 500,
+            "isFrom": false
+          },
+          {
+            "title": "Создание анимаций",
+            "price": 1000,
+            "isFrom": true
+          },
+          {
+            "title": "Базовая SEO-проработка",
+            "price": 1000,
+            "isFrom": false
+          }
+        ]
+      }
+    ]
+  },
+  "about": {
+    "title": "Обо мне",
+    "lead": "Я Спартак — разрабатываю сайты, Telegram-ботов, веб-приложения и CRM-системы.",
+    "text": [
+      "Помогаю бизнесу получать заявки, экономить время команды и убирать рутину: если работу можно описать по шагам — её можно отдать программе.",
+      "Веду проект от идеи до запуска: структура, дизайн, разработка и публикация."
+    ],
+    "directions": [
+      {
+        "title": "Разработка сайтов",
+        "text": "Лендинги, сайты компаний, каталоги и интернет-магазины с адаптивной вёрсткой и быстрой загрузкой."
+      },
+      {
+        "title": "Telegram-боты",
+        "text": "Боты для заявок, записи, уведомлений и работы с клиентами прямо в Telegram."
+      },
+      {
+        "title": "Веб-приложения",
+        "text": "Личные кабинеты, админки и сервисы под ваши процессы."
+      },
+      {
+        "title": "CRM-системы",
+        "text": "Учёт клиентов, заказов и задач в одной системе — под вашу команду."
+      },
+      {
+        "title": "Автоматизация бизнеса",
+        "text": "Заявки, отчёты, таблицы и рассылки, которые работают без ручного труда."
+      },
+      {
+        "title": "Интеграция сервисов",
+        "text": "Связываю CRM, таблицы, мессенджеры и сайты, чтобы данные передавались сами."
+      }
+    ]
+  },
+  "contacts": {
+    "title": "Контакты",
+    "cta": "Есть идея? Давай реализуем.",
+    "subtitle": "Напишите в Telegram — обсудим задачу и сроки.",
+    "primary": {
+      "label": "Написать в Telegram",
+      "url": "https://t.me/Spartlak"
     },
-    "extras": [
+    "items": [
       {
-        "key": "domain",
-        "title": "Подключение домена",
-        "description": "Регистрация и подключение согласованного домена.",
-        "price": 500,
-        "isFrom": false
+        "icon": "telegram",
+        "label": "Telegram",
+        "value": "@Spartlak",
+        "url": "https://t.me/Spartlak"
       },
       {
-        "key": "hosting",
-        "title": "Подключение хостинга",
-        "description": "Настройка и подходящий базовый тариф.",
-        "price": 500,
-        "isFrom": false
-      },
-      {
-        "key": "animations",
-        "title": "Создание анимаций",
-        "description": "Появление блоков, движение и интерактивные элементы под дизайн.",
-        "price": 1000,
-        "isFrom": true
-      },
-      {
-        "key": "seo",
-        "title": "Базовая SEO-проработка",
-        "description": "Заголовки, метаданные и подготовка страницы к индексации.",
-        "price": 1000,
-        "isFrom": false
+        "icon": "channel",
+        "label": "Telegram-канал",
+        "value": "t.me/spartakchokaet",
+        "url": "https://t.me/spartakchokaet"
       }
     ]
   }
