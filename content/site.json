@@ -8,12 +8,97 @@
   },
   "projects": [
     {
+      "id": 14,
+      "title": "OnCarClick",
+      "category": "Авто из Азии",
+      "liveUrl": "https://www.oncarclick.com/",
+      "imageUrl": "./assets/projects/oncarclick.webp",
+      "sortOrder": 1,
+      "published": true,
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
+      }
+    },
+    {
+      "id": 13,
+      "title": "Доктор Кудрявцева",
+      "category": "Стоматолог",
+      "liveUrl": "https://dr-kudryavceva.online/",
+      "imageUrl": "./assets/projects/dr-kudryavceva.webp",
+      "sortOrder": 2,
+      "published": true,
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
+      }
+    },
+    {
+      "id": 11,
+      "title": "Физиотера",
+      "category": "Клиника реабилитации, Уфа",
+      "liveUrl": "https://www.fiziotera.online/",
+      "imageUrl": "./assets/projects/fiziotera.webp",
+      "sortOrder": 3,
+      "published": true,
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
+      }
+    },
+    {
+      "id": 12,
+      "title": "Кабинет доктора Горшечникова",
+      "category": "Центр здоровья, Салават",
+      "liveUrl": "https://drgorshechnikov.ru",
+      "imageUrl": "./assets/projects/drgorshechnikov.webp",
+      "sortOrder": 4,
+      "published": true,
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
+      }
+    },
+    {
+      "id": 9,
+      "title": "ASIA TRADE CAR",
+      "category": "Импорт автомобилей",
+      "liveUrl": "https://www.asiatradecar.ru/",
+      "imageUrl": "./assets/projects/asia-trade-car.webp",
+      "sortOrder": 5,
+      "published": true,
+      "type": "Сайт",
+      "description": "",
+      "details": {
+        "task": "",
+        "done": [],
+        "tech": [],
+        "result": ""
+      }
+    },
+    {
       "id": 4,
       "title": "Pulse",
       "category": "Фитнес-клуб",
       "liveUrl": "https://pulse-fitness-club-two.vercel.app/",
       "imageUrl": "./assets/projects/pulse.jpg",
-      "sortOrder": 1,
+      "sortOrder": 6,
       "published": true,
       "previews": {
         "desktop": {
@@ -40,7 +125,7 @@
       "category": "Отдых у моря",
       "liveUrl": "https://sea-plum.vercel.app/",
       "imageUrl": "./assets/projects/blue-sea.jpg",
-      "sortOrder": 2,
+      "sortOrder": 7,
       "published": true,
       "previews": {
         "desktop": {
@@ -62,39 +147,12 @@
       }
     },
     {
-      "id": 6,
-      "title": "BRAVO",
-      "category": "Студия танца",
-      "liveUrl": "https://bravo-lilac.vercel.app/",
-      "imageUrl": "./assets/projects/bravo.jpg",
-      "sortOrder": 3,
-      "published": true,
-      "previews": {
-        "desktop": {
-          "avif": "./assets/projects/previews/bravo-desktop.avif",
-          "webp": "./assets/projects/previews/bravo-desktop.webp"
-        },
-        "mobile": {
-          "avif": "./assets/projects/previews/bravo-mobile.avif",
-          "webp": "./assets/projects/previews/bravo-mobile.webp"
-        }
-      },
-      "type": "Сайт",
-      "description": "",
-      "details": {
-        "task": "",
-        "done": [],
-        "tech": [],
-        "result": ""
-      }
-    },
-    {
       "id": 7,
       "title": "СтейкХаус",
       "category": "Ресторан",
       "liveUrl": "https://st-house-lemon.vercel.app/",
       "imageUrl": "./assets/projects/steak-house.jpg",
-      "sortOrder": 4,
+      "sortOrder": 8,
       "published": true,
       "previews": {
         "desktop": {
@@ -121,7 +179,7 @@
       "category": "Автосервис",
       "liveUrl": "https://autosalon-ruby.vercel.app/",
       "imageUrl": "./assets/projects/precision-auto.jpg",
-      "sortOrder": 5,
+      "sortOrder": 9,
       "published": true,
       "previews": {
         "desktop": {
@@ -143,63 +201,12 @@
       }
     },
     {
-      "id": 9,
-      "title": "ASIA TRADE CAR",
-      "category": "Импорт автомобилей",
-      "liveUrl": "https://www.asiatradecar.ru/",
-      "imageUrl": "./assets/projects/asia-trade-car.webp",
-      "sortOrder": 6,
-      "published": true,
-      "type": "Сайт",
-      "description": "",
-      "details": {
-        "task": "",
-        "done": [],
-        "tech": [],
-        "result": ""
-      }
-    },
-    {
       "id": 10,
       "title": "Медвежья поляна",
       "category": "Гостевые дома на Нугуше",
       "liveUrl": "https://bear-glade-19uk.vercel.app/",
       "imageUrl": "./assets/projects/bear-glade.webp",
-      "sortOrder": 7,
-      "published": true,
-      "type": "Сайт",
-      "description": "",
-      "details": {
-        "task": "",
-        "done": [],
-        "tech": [],
-        "result": ""
-      }
-    },
-    {
-      "id": 11,
-      "title": "Физиотера",
-      "category": "Клиника реабилитации, Уфа",
-      "liveUrl": "https://www.fiziotera.online/",
-      "imageUrl": "https://www.fiziotera.online/assets/img/og.jpg",
-      "sortOrder": 8,
-      "published": true,
-      "type": "Сайт",
-      "description": "",
-      "details": {
-        "task": "",
-        "done": [],
-        "tech": [],
-        "result": ""
-      }
-    },
-    {
-      "id": 12,
-      "title": "Кабинет доктора Горшечникова",
-      "category": "Центр здоровья, Салават",
-      "liveUrl": "https://drgorshechnikov.ru",
-      "imageUrl": "https://www.drgorshechnikov.ru/assets/img/og.jpg",
-      "sortOrder": 9,
+      "sortOrder": 10,
       "published": true,
       "type": "Сайт",
       "description": "",

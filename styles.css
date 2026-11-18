@@ -133,7 +133,7 @@ h1, h2, h3, h4, p { margin: 0; }
 .panel.is-active { opacity: 1; visibility: visible; }
 .panel::before { content: ""; position: absolute; top: -1px; height: 1px; right: 28px; left: 38%; background: linear-gradient(90deg, transparent, rgba(110, 180, 255, .85)); box-shadow: 0 0 10px rgba(74, 158, 255, .5); pointer-events: none; }
 .panel--hero { right: 6vw; width: min(480px, 38vw); }
-.panel--about { left: 4vw; width: min(540px, 36vw); }
+.panel--about { right: 9vw; width: min(560px, 37vw); }
 .panel--works { left: 4vw; width: min(900px, 54vw); }
 .panel--price { left: 5vw; width: min(620px, 44vw); }
 .panel--contacts { left: 3vw; width: min(540px, 38vw); }
@@ -302,7 +302,7 @@ h1, h2, h3, h4, p { margin: 0; }
   .panel__actions { margin-top: 16px; }
   .route-list__title { margin-top: 16px; }
   .route-list button { min-height: 44px; }
-  .panel--about { width: min(640px, 48vw); }
+  .panel--about { right: 4vw; width: min(640px, 46vw); }
   .about { grid-template-columns: 96px 1fr; gap: 18px; margin-top: 14px; }
   .about__photo { width: 96px; height: 96px; }
   .about__copy { gap: 6px; padding-left: 18px; font-size: 13px; line-height: 1.45; }

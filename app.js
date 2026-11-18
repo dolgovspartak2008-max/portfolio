@@ -144,8 +144,6 @@
       Object.assign(plate.style, { width: `${w}px`, height: `${h}px`, left: `${left}px`, top: `${top}px` });
       plate.style.setProperty('--gx', `${Number(plate.dataset.gx) * 100}%`);
       plate.style.setProperty('--gy', `${Number(plate.dataset.gy) * 100}%`);
-      const img = $('img:not(.plate__fallback)', plate);
-      if (img) img.sizes = `${Math.round(w)}px`;
     });
     drawFrame();
   }
@@ -168,8 +166,6 @@
     const img = new Image();
     img.alt = '';
     img.decoding = 'async';
-    img.srcset = `assets/drive/${name}-mobile.webp 1600w, assets/drive/${name}.webp 2560w`;
-    img.sizes = plate.style.width || '100vw';
     img.src = `assets/drive/${name}.webp`;
     plate.prepend(img);
     const ready = (img.decode ? img.decode() : new Promise((resolve, reject) => {
@@ -279,7 +275,7 @@
 
     const fast = reducedMotion.matches || !window.gsap;
     const mobile = isMobile();
-    const total = fast ? 0.35 : (options.fromIntro ? 0.8 : (mobile ? 1.5 : 1.9));
+    const total = fast ? 0.35 : (options.fromIntro ? 1.2 : (mobile ? 1.5 : 1.9));
     setProgress(target, total);
 
     const finish = () => {
@@ -335,8 +331,9 @@
 
     if (options.fromIntro) {
       gsap.set(inPlate, { autoAlpha: 0, scale: 1, transformOrigin: originIn });
-      tl.to(inPlate, { autoAlpha: 1, duration: 0.25, ease: 'none' }, 0)
-        .set(outPlate, { autoAlpha: 0 }, 0.3);
+      gsap.set(inPlate, { zIndex: 2 });
+      tl.to(inPlate, { autoAlpha: 1, duration: 1.1, ease: 'sine.inOut' }, 0)
+        .set(outPlate, { autoAlpha: 0 }, 1.15);
     } else {
       // Плавное «движение камеры»: оба кадра едут в одну сторону и долго перетекают друг в друга
       const grow = dir > 0;
@@ -357,7 +354,7 @@
         .to(tag, { autoAlpha: 0, y: -12, duration: total * 0.25, ease: 'power2.in' }, total * 0.5);
     }
 
-    const panelAt = options.fromIntro ? 0.15 : total * 0.55;
+    const panelAt = options.fromIntro ? 0.5 : total * 0.55;
     tl.call(() => setPanelState(target, true), null, panelAt)
       .fromTo(inPanel, { autoAlpha: 0, x: shift.x, y: shift.y }, { autoAlpha: 1, x: 0, y: 0, duration: 0.5, ease: 'power3.out' }, panelAt)
       .fromTo(children, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.42, stagger: 0.045, ease: 'power2.out', clearProps: 'transform,opacity,visibility' }, panelAt + 0.06);
@@ -368,8 +365,7 @@
   /* ---------- Вступление: видео A ---------- */
 
   function chooseVideoSource() {
-    const small = Math.min(window.screen.width, window.screen.height) <= 760;
-    video.src = small ? 'assets/drive/intro-mobile.mp4' : 'assets/drive/intro.mp4';
+    video.src = 'assets/drive/intro.mp4';
     video.preload = lowPower() ? 'metadata' : 'auto';
   }
 
