@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 264" width="264" height="264">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101a2c"/>
+      <stop offset="1" stop-color="#05080e"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1626"/>
+      <stop offset="1" stop-color="#070b13"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4a9eff" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#8cc4ff"/>
+      <stop offset="1" stop-color="#4a9eff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="264" height="264" rx="28" fill="url(#bg)"/>
+  <path d="M0 200 Q132 168 264 200 V264 H0Z" fill="#4a9eff" opacity=".06"/>
+
+  <!-- монитор -->
+  <rect x="30" y="52" width="178" height="118" rx="10" fill="#1a2232" stroke="#2c3a52" stroke-width="2"/>
+  <rect x="38" y="60" width="162" height="102" rx="5" fill="url(#screen)"/>
+  <rect x="38" y="60" width="162" height="12" rx="5" fill="#131d2e"/>
+  <circle cx="46" cy="66" r="2.4" fill="#ff5f57"/>
+  <circle cx="54" cy="66" r="2.4" fill="#febc2e"/>
+  <circle cx="62" cy="66" r="2.4" fill="#28c840"/>
+  <g stroke-linecap="round" stroke-width="4">
+    <path d="M48 84 H74" stroke="#4a9eff"/>
+    <path d="M80 84 H112" stroke="#c9d6ea"/>
+    <path d="M58 96 H88" stroke="#7dd3fc"/>
+    <path d="M94 96 H140" stroke="#5b6b85"/>
+    <path d="M58 108 H78" stroke="#a78bfa"/>
+    <path d="M84 108 H124" stroke="#c9d6ea"/>
+    <path d="M68 120 H104" stroke="#4a9eff"/>
+    <path d="M110 120 H128" stroke="#5b6b85"/>
+    <path d="M58 132 H96" stroke="#7dd3fc"/>
+    <path d="M48 144 H66" stroke="#4a9eff"/>
+  </g>
+  <rect x="150" y="80" width="40" height="70" rx="4" fill="#4a9eff" opacity=".08" stroke="#4a9eff" stroke-opacity=".35"/>
+  <path d="M158 96 H182 M158 106 H176 M158 116 H182" stroke="#4a9eff" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"/>
+  <rect x="158" y="126" width="24" height="12" rx="6" fill="#4a9eff"/>
+  <path d="M30 170 H208" stroke="url(#edge)" stroke-width="2"/>
+  <path d="M106 170 L100 196 H138 L132 170Z" fill="#1a2232"/>
+  <rect x="84" y="194" width="70" height="8" rx="4" fill="#243047"/>
+
+  <!-- телефон -->
+  <rect x="186" y="112" width="52" height="96" rx="10" fill="#1a2232" stroke="#4a9eff" stroke-opacity=".7" stroke-width="2"/>
+  <rect x="192" y="122" width="40" height="76" rx="4" fill="url(#screen)"/>
+  <rect x="204" y="116" width="16" height="3" rx="1.5" fill="#2c3a52"/>
+  <rect x="197" y="128" width="30" height="18" rx="3" fill="#4a9eff" opacity=".22"/>
+  <path d="M197 154 H227 M197 162 H219 M197 170 H224" stroke="#c9d6ea" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"/>
+  <rect x="197" y="180" width="30" height="10" rx="5" fill="#4a9eff"/>
+
+  <!-- скобки кода -->
+  <path d="M44 36 L34 44 L44 52 M66 36 L76 44 L66 52 M60 34 L50 54" fill="none" stroke="#4a9eff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="226" cy="44" r="10" fill="none" stroke="#4a9eff" stroke-opacity=".5" stroke-width="2"/>
+  <circle cx="226" cy="44" r="3.5" fill="#4a9eff"/>
+  <path d="M216 44 H198 M226 54 V70" stroke="#4a9eff" stroke-opacity=".35" stroke-width="2"/>
+</svg>

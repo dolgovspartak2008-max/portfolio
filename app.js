@@ -275,7 +275,7 @@
 
     const fast = reducedMotion.matches || !window.gsap;
     const mobile = isMobile();
-    const total = fast ? 0.35 : (options.fromIntro ? 1.2 : (mobile ? 1.3 : 1.6));
+    const total = fast ? 0.35 : (options.fromIntro ? 1.3 : (mobile ? 1.5 : 1.7));
     setProgress(target, total);
 
     const finish = () => {
@@ -323,33 +323,29 @@
     tag.style.left = `${origin.x}px`;
     tag.style.top = `${origin.y}px`;
     const children = $$(':scope > *', inPanel);
-    const shift = mobile ? { x: 0, y: 26 } : { x: 0, y: 18 };
+    const shift = mobile ? { x: 0, y: 20 } : { x: 0, y: 14 };
     const tl = gsap.timeline({ onComplete: finish, defaults: { ease: 'sine.inOut' } });
 
-    tl.to(outPanel, { autoAlpha: 0, x: -shift.x * 0.6, y: mobile ? 16 : -shift.y * 0.4, duration: 0.32, ease: 'power2.in' }, 0);
+    tl.to(outPanel, { autoAlpha: 0, y: mobile ? 12 : -8, duration: 0.45, ease: 'power2.inOut' }, 0);
     gsap.set(outPlate, { transformOrigin: originOut });
 
-    // Кадры не накладываются друг на друга: старый уезжает в свечение ворот, новый проявляется из него
+    // Кадры не накладываются друг на друга: старый мягко уходит в темноту, новый так же мягко проявляется
     const grow = dir > 0 || options.fromIntro;
-    const half = total * 0.5;
     gsap.set(outPlate, { zIndex: 1 });
-    gsap.set(inPlate, { zIndex: 2, autoAlpha: 0, scale: grow ? 1.06 : 0.96, transformOrigin: originIn });
-    tl.to(outPlate, { scale: grow ? 1.1 : 0.94, duration: half, ease: 'sine.in' }, 0)
-      .to(outPlate, { autoAlpha: 0, duration: half * 0.9, ease: 'sine.in' }, half * 0.1)
-      .to(bloom, { opacity: grow ? 0.22 : 0.1, duration: half, ease: 'sine.in' }, 0)
-      .to(bloom, { opacity: 0, duration: half, ease: 'sine.out' }, half)
-      .to(inPlate, { autoAlpha: 1, duration: half, ease: 'sine.out' }, half)
-      .to(inPlate, { scale: 1, duration: half * 1.2, ease: 'power2.out' }, half);
+    gsap.set(inPlate, { zIndex: 2, autoAlpha: 0, scale: grow ? 1.035 : 0.975, transformOrigin: originIn });
+    tl.to(outPlate, { scale: grow ? 1.05 : 0.97, autoAlpha: 0, duration: total * 0.55, ease: 'sine.inOut' }, 0)
+      .to(inPlate, { autoAlpha: 1, duration: total * 0.55, ease: 'sine.inOut' }, total * 0.45)
+      .to(inPlate, { scale: 1, duration: total * 0.7, ease: 'power2.out' }, total * 0.3);
 
     if (dir > 0 && target > 0 && !options.fromIntro) {
       tl.fromTo(tag, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: total * 0.3, ease: 'power2.out' }, 0.05)
         .to(tag, { autoAlpha: 0, y: -12, duration: total * 0.25, ease: 'power2.in' }, total * 0.5);
     }
 
-    const panelAt = total * 0.55;
+    const panelAt = total * 0.6;
     tl.call(() => setPanelState(target, true), null, panelAt)
-      .fromTo(inPanel, { autoAlpha: 0, x: shift.x, y: shift.y }, { autoAlpha: 1, x: 0, y: 0, duration: 0.5, ease: 'power3.out' }, panelAt)
-      .fromTo(children, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.42, stagger: 0.045, ease: 'power2.out', clearProps: 'transform,opacity,visibility' }, panelAt + 0.06);
+      .fromTo(inPanel, { autoAlpha: 0, x: shift.x, y: shift.y }, { autoAlpha: 1, x: 0, y: 0, duration: 0.75, ease: 'power3.out' }, panelAt)
+      .fromTo(children, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.06, ease: 'power2.out', clearProps: 'transform,opacity,visibility' }, panelAt + 0.08);
   }
 
   const step = (delta) => goTo(state.stage + delta);

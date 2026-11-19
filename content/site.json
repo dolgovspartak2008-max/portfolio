@@ -4,7 +4,7 @@
     "role": "Сайты, Telegram-боты, приложения и автоматизация для бизнеса",
     "telegramUsername": "Spartlak",
     "telegramChannelUrl": "https://t.me/spartakchokaet",
-    "photo": "./assets/portrait.jpg"
+    "photo": "assets/workspace.svg"
   },
   "projects": [
     {
@@ -93,39 +93,12 @@
       }
     },
     {
-      "id": 4,
-      "title": "Pulse",
-      "category": "Фитнес-клуб",
-      "liveUrl": "https://pulse-fitness-club-two.vercel.app/",
-      "imageUrl": "./assets/projects/pulse.jpg",
-      "sortOrder": 6,
-      "published": true,
-      "previews": {
-        "desktop": {
-          "avif": "./assets/projects/previews/pulse-desktop.avif",
-          "webp": "./assets/projects/previews/pulse-desktop.webp"
-        },
-        "mobile": {
-          "avif": "./assets/projects/previews/pulse-mobile.avif",
-          "webp": "./assets/projects/previews/pulse-mobile.webp"
-        }
-      },
-      "type": "Сайт",
-      "description": "",
-      "details": {
-        "task": "",
-        "done": [],
-        "tech": [],
-        "result": ""
-      }
-    },
-    {
       "id": 5,
       "title": "BlueSea",
       "category": "Отдых у моря",
       "liveUrl": "https://sea-plum.vercel.app/",
       "imageUrl": "./assets/projects/blue-sea.jpg",
-      "sortOrder": 7,
+      "sortOrder": 6,
       "published": true,
       "previews": {
         "desktop": {
@@ -152,7 +125,7 @@
       "category": "Ресторан",
       "liveUrl": "https://st-house-lemon.vercel.app/",
       "imageUrl": "./assets/projects/steak-house.jpg",
-      "sortOrder": 8,
+      "sortOrder": 7,
       "published": true,
       "previews": {
         "desktop": {
@@ -179,7 +152,7 @@
       "category": "Автосервис",
       "liveUrl": "https://autosalon-ruby.vercel.app/",
       "imageUrl": "./assets/projects/precision-auto.jpg",
-      "sortOrder": 9,
+      "sortOrder": 8,
       "published": true,
       "previews": {
         "desktop": {
@@ -206,7 +179,7 @@
       "category": "Гостевые дома на Нугуше",
       "liveUrl": "https://bear-glade-19uk.vercel.app/",
       "imageUrl": "./assets/projects/bear-glade.webp",
-      "sortOrder": 10,
+      "sortOrder": 9,
       "published": true,
       "type": "Сайт",
       "description": "",
